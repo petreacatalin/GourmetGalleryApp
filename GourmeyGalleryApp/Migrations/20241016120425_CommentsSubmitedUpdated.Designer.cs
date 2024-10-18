@@ -4,6 +4,7 @@ using GourmetGallery.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GourmeyGalleryApp.Migrations
 {
     [DbContext(typeof(GourmetGalleryContext))]
-    partial class GourmetGalleryContextModelSnapshot : ModelSnapshot
+    [Migration("20241016120425_CommentsSubmitedUpdated")]
+    partial class CommentsSubmitedUpdated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -148,14 +151,8 @@ namespace GourmeyGalleryApp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("HelpfulCount")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsEdited")
+                    b.Property<bool>("IsReply")
                         .HasColumnType("bit");
-
-                    b.Property<int>("NotHelpfulCount")
-                        .HasColumnType("int");
 
                     b.Property<int?>("ParentCommentId")
                         .HasColumnType("int");
@@ -183,31 +180,6 @@ namespace GourmeyGalleryApp.Migrations
                     b.HasIndex("RecipeId");
 
                     b.ToTable("Comments");
-                });
-
-            modelBuilder.Entity("GourmeyGalleryApp.Models.Entities.CommentVote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("CommentId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("CommentVotes");
                 });
 
             modelBuilder.Entity("GourmeyGalleryApp.Models.Entities.Friend", b =>
@@ -747,25 +719,6 @@ namespace GourmeyGalleryApp.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("GourmeyGalleryApp.Models.Entities.CommentVote", b =>
-                {
-                    b.HasOne("GourmeyGalleryApp.Models.Entities.Comment", "Comment")
-                        .WithMany("Votes")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("GourmeyGalleryApp.Models.Entities.ApplicationUser", "User")
-                        .WithMany("CommentVotes")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("GourmeyGalleryApp.Models.Entities.Friend", b =>
                 {
                     b.HasOne("GourmeyGalleryApp.Models.Entities.ApplicationUser", "FriendUser")
@@ -1000,8 +953,6 @@ namespace GourmeyGalleryApp.Migrations
 
             modelBuilder.Entity("GourmeyGalleryApp.Models.Entities.ApplicationUser", b =>
                 {
-                    b.Navigation("CommentVotes");
-
                     b.Navigation("Comments");
 
                     b.Navigation("FriendsAccepted");
@@ -1031,8 +982,6 @@ namespace GourmeyGalleryApp.Migrations
             modelBuilder.Entity("GourmeyGalleryApp.Models.Entities.Comment", b =>
                 {
                     b.Navigation("Replies");
-
-                    b.Navigation("Votes");
                 });
 
             modelBuilder.Entity("GourmeyGalleryApp.Models.Entities.IngredientsTotal", b =>

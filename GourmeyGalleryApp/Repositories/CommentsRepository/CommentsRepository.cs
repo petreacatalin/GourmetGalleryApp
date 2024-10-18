@@ -25,7 +25,7 @@ namespace GourmeyGalleryApp.Infrastructure
                 .Include(c => c.Rating)
                 .Include(c => c.User)
                 .Include(c=> c.Replies)
-                .OrderByDescending(c => c.Timestamp)
+                .OrderByDescending(c => c.Submitted)
                 .ToListAsync();
         }
 
@@ -50,5 +50,50 @@ namespace GourmeyGalleryApp.Infrastructure
         {
            return await _context.Comments.Where(c => c.ParentCommentId == parentId).ToListAsync();
         }
+        public async Task<CommentVote?> GetUserVoteForCommentAsync(int commentId, string userId)
+        {
+            return await _context.CommentVotes
+                .FirstOrDefaultAsync(v => v.CommentId == commentId && v.UserId == userId);
+        }
+
+        public async Task AddOrUpdateVoteAsync(int commentId, string userId)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null)
+            {
+                throw new ArgumentException("Comment not found.");
+            }
+
+            // Prevent users from voting on their own comments
+            if (comment.ApplicationUserId == userId)
+            {
+                throw new InvalidOperationException("Users cannot vote on their own comments.");
+            }
+
+            // Check if the user has already voted on this comment
+            var existingVote = await GetUserVoteForCommentAsync(commentId, userId);
+
+            if (existingVote != null)
+            {
+                // User is un-voting (removing their vote)
+                _context.Remove(existingVote);
+                comment.HelpfulCount--; // Decrease helpful count
+            }
+            else
+            {
+                // User is voting (adding their vote)
+                var vote = new CommentVote
+                {
+                    CommentId = commentId,
+                    UserId = userId,
+                };
+
+                _context.CommentVotes.Add(vote);
+                comment.HelpfulCount++; // Increase helpful count
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
     }
 }

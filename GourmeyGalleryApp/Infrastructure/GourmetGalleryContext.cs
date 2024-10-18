@@ -24,6 +24,8 @@ public class GourmetGalleryContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserFavoriteRecipe> UserFavoriteRecipes { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<RecipeCategory> RecipeCategories { get; set; }
+    public DbSet<CommentVote> CommentVotes { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -180,6 +182,27 @@ public class GourmetGalleryContext : IdentityDbContext<ApplicationUser>
             .HasOne(rc => rc.Category)
             .WithMany(c => c.RecipeCategories)
             .HasForeignKey(rc => rc.CategoryId);
+
+        // Configure CommentVote entity
+        modelBuilder.Entity<CommentVote>()
+            .HasKey(cv => cv.Id);
+
+        modelBuilder.Entity<CommentVote>()
+            .HasOne(cv => cv.Comment) // A vote belongs to a comment
+            .WithMany(c => c.Votes)
+            .HasForeignKey(cv => cv.CommentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CommentVote>()
+            .HasOne(cv => cv.User) // A vote belongs to a user
+            .WithMany(u => u.CommentVotes)
+            .HasForeignKey(cv => cv.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Ensure that a user can only vote once per comment
+        modelBuilder.Entity<CommentVote>()
+            .HasIndex(cv => new { cv.CommentId, cv.UserId })
+            .IsUnique();
     }
 
 }

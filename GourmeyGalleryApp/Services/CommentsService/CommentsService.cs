@@ -43,7 +43,11 @@ namespace GourmeyGalleryApp.Services
                 Content = commentDto.Content,
                 RecipeId = commentDto.RecipeId,
                 ApplicationUserId = commentDto.ApplicationUserId,
-                Timestamp = commentDto.Timestamp,
+                Submitted = DateTime.Now,
+                Updated = commentDto.Updated,
+                HelpfulCount = commentDto.HelpfulCount,
+                NotHelpfulCount = commentDto.NotHelpfulCount,
+                IsEdited = commentDto.IsEdited,
                 User = user,
                 Rating = commentDto.Rating != null ? new Rating
                 {
@@ -80,8 +84,12 @@ namespace GourmeyGalleryApp.Services
                 Content = comment.Content,
                 RecipeId = comment.RecipeId,
                 ApplicationUserId = comment.ApplicationUserId,
-                Timestamp = comment.Timestamp,
+                Submitted = comment.Submitted,
+                Updated = comment.Updated,
+                HelpfulCount = comment.HelpfulCount,
+                NotHelpfulCount = comment.NotHelpfulCount,
                 RatingId = comment.RatingId,
+                IsEdited = comment.IsEdited,
                 Rating = comment.Rating != null ? new RatingDto
                 {
                     RatingValue = comment.Rating.RatingValue,
@@ -102,7 +110,8 @@ namespace GourmeyGalleryApp.Services
                     Content = comment.ParentComment.Content,
                     RecipeId = comment.ParentComment.RecipeId,
                     ApplicationUserId = comment.ParentComment.ApplicationUserId,
-                    Timestamp = comment.ParentComment.Timestamp,
+                    Submitted = comment.ParentComment.Submitted,
+                    Updated = comment.ParentComment.Updated,
                     RatingId = comment.ParentComment.RatingId,
                     User = new ApplicationUserDto
                     {
@@ -113,7 +122,7 @@ namespace GourmeyGalleryApp.Services
                     }
                 } : null,
                 Replies = comment.Replies != null
-                    ? _mapper.Map<List<CommentDto>>(comment.Replies.Where(r => r.IsReply && r.ParentCommentId == comment.Id).ToList())
+                    ? _mapper.Map<List<CommentDto>>(comment.Replies.Where(r => r.ParentCommentId == comment.Id).ToList())
                     : new List<CommentDto>(),
             };
 
@@ -131,8 +140,12 @@ namespace GourmeyGalleryApp.Services
                 Content = c.Content,
                 RecipeId = c.RecipeId,
                 ApplicationUserId = c.ApplicationUserId,
-                Timestamp = c.Timestamp,
+                Submitted = c.Submitted,
+                Updated = c.Updated,
+                HelpfulCount = c.HelpfulCount,
+                NotHelpfulCount = c.NotHelpfulCount,
                 RatingId = c.RatingId,
+                IsEdited = c.IsEdited,
                 Rating = c.Rating != null ? new RatingDto
                 {
                     RatingValue = c.Rating.RatingValue,
@@ -153,7 +166,8 @@ namespace GourmeyGalleryApp.Services
                     Content = c.ParentComment.Content,
                     RecipeId = c.ParentComment.RecipeId,
                     ApplicationUserId = c.ParentComment.ApplicationUserId,
-                    Timestamp = c.ParentComment.Timestamp,
+                    Updated = c.ParentComment.Updated,
+                    Submitted = c.ParentComment.Submitted,
                     RatingId = c.ParentComment.RatingId,
                     User = new ApplicationUserDto
                     {
@@ -197,7 +211,8 @@ namespace GourmeyGalleryApp.Services
             }
 
             comment.Content = commentDto.Content;
-            comment.Timestamp = DateTime.UtcNow;
+            comment.IsEdited = true;
+            comment.Updated = DateTime.Now;
 
             await _commentsRepository.UpdateCommentAsync(comment);
         }
@@ -226,5 +241,12 @@ namespace GourmeyGalleryApp.Services
             // Then, delete the comment itself
             await _commentsRepository.DeleteCommentAsync(comment);
         }
+
+        public async Task MarkAsHelpfulAsync(int commentId, string userId)
+        {
+            // Validate and add vote
+            await _commentsRepository.AddOrUpdateVoteAsync(commentId, userId);
+        }
+       
     }
 }

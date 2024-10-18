@@ -2,6 +2,7 @@
 using GourmeyGalleryApp.Models.DTOs.Comments;
 using GourmeyGalleryApp.Models.Entities;
 using GourmeyGalleryApp.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -89,4 +90,27 @@ public class CommentsController : ControllerBase
             return NotFound();
         }
     }
+
+    [Authorize(Roles = "Admin, User")]
+    [HttpPost("{id}/helpful")]
+    public async Task<IActionResult> MarkAsHelpful(int id)
+    {
+        var userId = User.FindFirstValue("nameId");
+        if (userId == null) return Unauthorized();
+
+        try
+        {
+            await _commentsService.MarkAsHelpfulAsync(id, userId);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
 }

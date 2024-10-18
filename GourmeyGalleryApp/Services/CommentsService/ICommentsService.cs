@@ -13,5 +13,6 @@ namespace GourmeyGalleryApp.Interfaces
         Task<Comment?> GetCommentByIdAsync(int id);
         Task UpdateCommentAsync(CommentDto commentDto);
         Task DeleteCommentAsync(int id);
+        Task MarkAsHelpfulAsync(int commentId, string userId);
     }
 }
