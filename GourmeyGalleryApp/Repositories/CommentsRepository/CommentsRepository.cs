@@ -77,7 +77,7 @@ namespace GourmeyGalleryApp.Infrastructure
             {
                 // User is un-voting (removing their vote)
                 _context.Remove(existingVote);
-                comment.HelpfulCount--; // Decrease helpful count
+                comment.HelpfulCount = Math.Max(0, comment.HelpfulCount - 1); // Ensure count doesn't go below 0
             }
             else
             {
@@ -94,6 +94,8 @@ namespace GourmeyGalleryApp.Infrastructure
 
             await _context.SaveChangesAsync();
         }
+
+
 
     }
 }

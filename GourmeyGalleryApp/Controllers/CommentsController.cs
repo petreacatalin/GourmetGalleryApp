@@ -113,4 +113,25 @@ public class CommentsController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin, User")]
+    [HttpGet("{commentId}/user-vote")]
+    public async Task<IActionResult> GetUserVoteForCommentAsync(int commentId)
+    {
+        var userId = User.FindFirstValue("nameId");
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("User not logged in.");
+        }
+
+        var existingVote = await _commentsService.GetUserVoteForCommentAsync(commentId, userId);
+
+        if (existingVote != null)
+        {
+            return Ok(true); 
+        }
+
+        return Ok(false); 
+    }
+
 }

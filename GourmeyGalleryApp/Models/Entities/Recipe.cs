@@ -87,6 +87,9 @@ namespace GourmeyGalleryApp.Models.Entities
             }
         }
 
+        [NotMapped]
+        public Comment? MostHelpfulPositiveComment { get; set; }
+
     }
 
 }

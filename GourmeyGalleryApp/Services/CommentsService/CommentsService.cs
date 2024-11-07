@@ -247,6 +247,11 @@ namespace GourmeyGalleryApp.Services
             // Validate and add vote
             await _commentsRepository.AddOrUpdateVoteAsync(commentId, userId);
         }
-       
+
+        public async Task<CommentVote?> GetUserVoteForCommentAsync(int commentId, string userId)
+        {
+            return await _commentsRepository.GetUserVoteForCommentAsync(commentId, userId);
+        }
+
     }
 }

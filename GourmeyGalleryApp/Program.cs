@@ -89,7 +89,7 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidIssuer = builder.Configuration["JwtConfig:Issuer"],
         ValidAudience = builder.Configuration["JwtConfig:Audience"],
-        ClockSkew = TimeSpan.Zero, // Optional: To prevent clock skew issues
+        ClockSkew = TimeSpan.Zero, 
         RoleClaimType = "role"
     };
 });
@@ -111,7 +111,7 @@ builder.Services.AddCors(options =>
 //builder.Services.AddCors(options =>
 //{
 //    options.AddPolicy("AllowSpecificOrigin", builder => builder
-//        .WithOrigins("https://gourmetgallery.azurewebsites.net")
+//        .WithOrigins("https://localhost:4200")
 //        .AllowAnyMethod()
 //        .AllowAnyHeader()
 //        .AllowCredentials());
@@ -192,5 +192,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<GourmetGalleryContext>();
+        context.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while applying migrations.");
+    }
+}
 
 app.Run();

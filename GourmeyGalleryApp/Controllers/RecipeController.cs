@@ -72,7 +72,7 @@ public class RecipeController : ControllerBase
 
         if (string.IsNullOrEmpty(slug) || recipe.Slug != slug)
         {
-            // Redirect to the correct URL if the slug doesn't match
+          
             return RedirectToAction(nameof(GetRecipeByIdAndSlug), new { id = recipe.Id, slug = recipe.Slug });
         }
 

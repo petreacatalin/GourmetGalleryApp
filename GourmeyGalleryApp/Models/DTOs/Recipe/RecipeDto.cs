@@ -80,6 +80,9 @@ namespace GourmeyGalleryApp.Models.DTOs.Recipe
                 return ratings.Count();
             }
         }
+
+       
+        public CommentDto? MostHelpfulPositiveComment { get; set; }
     }
 }
 

@@ -8,8 +8,8 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "https://gourmet-gallery-be.azurewebsites.net;https://gourmet-gallery-be.azurewebsites.net/api"
-     // "applicationUrl": "https://localhost:7201;http://localhost:5187"
+     // "applicationUrl": "https://gourmet-gallery-be.azurewebsites.net;https://gourmet-gallery-be.azurewebsites.net/api"
+      "applicationUrl": "https://localhost:7201;http://localhost:5187"
     },
     "https": {
       "commandName": "Project",

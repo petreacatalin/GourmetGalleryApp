@@ -3,6 +3,7 @@ using GourmeyGalleryApp.Models.DTOs.Comments;
 using GourmeyGalleryApp.Models.DTOs.Recipe;
 using GourmeyGalleryApp.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Xml.Linq;
 
 namespace GourmeyGalleryApp.Repositories.RecipeRepository
 {
@@ -61,23 +62,42 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
                     .ThenInclude(i => i.Steps)
                 .Include(r => r.Comments)
                     .ThenInclude(rt => rt.Rating)
+                .Include(x=> x.InformationTime)
                 .Include(us => us.ApplicationUser)
-                .Where(st => isAdmin == true || st.Status == RecipeStatus.Approved) 
+                .Where(st => isAdmin == true || st.Status == RecipeStatus.Approved)
                 .ToListAsync();
         }
 
         public async Task<Recipe> GetRecipeByIdAsync(int id)
         {
-            return await _context.Recipes
-           .Include(r => r.IngredientsTotal)
-               .ThenInclude(it => it.Ingredients)
-           .Include(r => r.Instructions)
-               .ThenInclude(i => i.Steps)
-           .Include(r => r.Comments)
-           .Include(x=> x.NutritionFacts)
-           .Include(x => x.InformationTime)
-           .Include(us => us.ApplicationUser)              
-           .FirstOrDefaultAsync(r => r.Id == id);
+            var recipeById = await _context.Recipes
+          .Include(r => r.IngredientsTotal)
+              .ThenInclude(it => it.Ingredients)
+          .Include(r => r.Instructions)
+              .ThenInclude(i => i.Steps)
+          .Include(r => r.Comments)
+              .ThenInclude(c => c.User) 
+          .Include(r => r.Comments)
+              .ThenInclude(c => c.Rating) 
+          .Include(r => r.NutritionFacts)
+          .Include(r => r.InformationTime)
+          .Include(r => r.ApplicationUser)
+          .FirstOrDefaultAsync(r => r.Id == id);
+        
+            if (recipeById == null)
+                return null;
+          
+            var mostHelpfulComment = recipeById.Comments
+                .Where(c => c.Rating != null && c.Rating.RatingValue >= 3)
+                .OrderByDescending(x=>x.Rating.RatingValue)
+                .OrderByDescending(c => c.HelpfulCount)
+                .ThenByDescending(c => c.Submitted)
+                .FirstOrDefault();
+
+         
+            recipeById.MostHelpfulPositiveComment = mostHelpfulComment;
+
+            return recipeById;
         }
         public async Task<List<Rating>> GetRatingsByRecipeId(int id)
         {
