@@ -149,7 +149,7 @@ public class RecipeController : ControllerBase
             //}
 
             recipe.CreatedAt = DateTime.UtcNow;
-            await _recipeService.AddRecipeAsync(recipe);
+            await _recipeService.AddRecipeAsync(recipe, recipeDto);
 
             var savedRecipe = await _recipeService.GetRecipeByIdAsync(recipe.Id);
             var recipeDtoResult = _mapper.Map<RecipeDto>(savedRecipe);
@@ -181,6 +181,8 @@ public class RecipeController : ControllerBase
 
         try
         {
+            var userId = User.FindFirstValue("nameId");
+            recipe.ApplicationUserId = userId;
             await _recipeService.UpdateRecipeAsync(recipe);
             return NoContent();
         }

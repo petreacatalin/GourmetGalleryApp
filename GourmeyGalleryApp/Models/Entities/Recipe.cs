@@ -23,22 +23,15 @@ namespace GourmeyGalleryApp.Models.Entities
         public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public MealType? MealType { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public Cuisine? Cuisine { get; set; }
+        public int? MealTypeId { get; set; }
+        public int? CuisineId { get; set; }
+        public int? IngredientId { get; set; }
+        public int? OccasionId { get; set; }
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public DietaryRestrictions? DietaryRestrictions { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public CookingMethod? CookingMethod { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public MainIngredient? MainIngredient { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public Occasion? Occasion { get; set; }
+
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public DifficultyLevel? DifficultyLevel { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public OtherCategories? OtherCategories { get; set; }
         public int IngredientsTotalId { get; set; }
         public int InstructionsId { get; set; }
         public string ApplicationUserId { get; set; }

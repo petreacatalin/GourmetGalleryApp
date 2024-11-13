@@ -8,7 +8,7 @@ namespace GourmeyGalleryApp.Services.RecipeService
         Task<IEnumerable<Recipe>> GetAllRecipesAsync(bool? isAdmin);
         Task<Recipe> GetRecipeByIdAsync(int id);
         Task<List<Rating>> GetRatingsByRecipeId(int id);
-        Task AddRecipeAsync(Recipe recipe);
+        Task AddRecipeAsync(Recipe recipe, RecipeDto? recipeDto);
         Task UpdateRecipeAsync(Recipe recipe);
         Task DeleteRecipeAsync(int id);
         Task<IEnumerable<Recipe>> GetRecipesByUserIdAsync(string userId);

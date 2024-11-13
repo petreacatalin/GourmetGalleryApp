@@ -23,7 +23,19 @@ namespace GourmeyGalleryApp.Repositories.CategoryRepository
         {
             return await _context.Categories.FindAsync(id);
         }
+        public async Task<IEnumerable<Category>> GetTopLevelCategoriesAsync()
+        {
+            return await _context.Categories
+                .Where(c => c.ParentCategoryId == null)
+                .ToListAsync();
+        }
 
+        public async Task<IEnumerable<Category>> GetSubcategoriesAsync(int categoryId)
+        {
+            return await _context.Categories
+                .Where(c => c.ParentCategoryId == categoryId)
+                .ToListAsync();
+        }
         public async Task<Category?> GetCategoryBySlugAsync(string slug)
         {
             return await _context.Categories.FirstOrDefaultAsync(c => c.Slug == slug);

@@ -3,6 +3,7 @@ using GourmeyGalleryApp.Models.DTOs.Recipe;
 using GourmeyGalleryApp.Models.Entities;
 using GourmeyGalleryApp.Services.CategoryService;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace GourmeyGalleryApp.Controllers
 {

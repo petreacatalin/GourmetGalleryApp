@@ -12,6 +12,7 @@ namespace GourmeyGalleryApp.Models.DTOs.Recipe
         public int Id { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
+        public string? ApplicationUserId { get; set; }
         public int IngredientsTotalId { get; set; }
         public int InstructionsId { get; set; }
         public string? Tags { get; set; }
@@ -20,22 +21,17 @@ namespace GourmeyGalleryApp.Models.DTOs.Recipe
         public RecipeStatus Status { get; set; }
         public DateTime? CreatedAt { get; set; } 
         public DateTime? UpdatedAt { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public MealType? MealType { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public Cuisine? Cuisine { get; set; }
+
+        public int? MealTypeId { get; set; }
+        public int? CuisineId { get; set; }
+        public int? IngredientId { get; set; }
+        public int? OccasionId { get; set; }
+        public List<int> SelectedSubcategories { get; set; } = new List<int>(); // Selected subcategory IDs
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public DietaryRestrictions? DietaryRestrictions { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public CookingMethod? CookingMethod { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public MainIngredient? MainIngredient { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public Occasion? Occasion { get; set; }
+
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public DifficultyLevel? DifficultyLevel { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public OtherCategories? OtherCategories { get; set; }
         public ICollection<CommentDto> Comments { get; set; } = new List<CommentDto>();
         // public ICollection<ReviewDto> Reviews { get; set; } = new List<ReviewDto>();
         public IngredientsTotalDto? IngredientsTotal { get; set; } // Updated DTO
@@ -43,6 +39,7 @@ namespace GourmeyGalleryApp.Models.DTOs.Recipe
         public NutritionFactsDto? NutritionFacts { get; set; }
         public InformationTimeDto? InformationTime { get; set; }
         public ApplicationUserDto? ApplicationUser { get; set; }
+
         [NotMapped]
         public double AverageRating
         {

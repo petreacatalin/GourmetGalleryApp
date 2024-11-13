@@ -1,4 +1,5 @@
 ﻿using GourmeyGalleryApp.Models.Entities;
+using System.Text.Json.Serialization;
 
 namespace GourmeyGalleryApp.Models.DTOs.Recipe
 {

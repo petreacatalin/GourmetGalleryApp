@@ -16,8 +16,23 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
             _context = context;
         }
 
-        public async Task AddRecipeAsync(Recipe recipe)
+        public async Task AddRecipeAsync(Recipe recipe, RecipeDto? recipeDto)
         {
+            if (recipeDto is not null)
+            {
+                foreach (var subcategoryId in recipeDto.SelectedSubcategories)
+                {
+                    var category = await _context.Categories.FindAsync(subcategoryId);
+                    if (category != null)
+                    {
+                        recipe.RecipeCategories.Add(new RecipeCategory
+                        {
+                            Recipe = recipe,
+                            Category = category
+                        });
+                    }
+                }
+            }
             // Add the Recipe to the context
             await _context.Set<Recipe>().AddAsync(recipe);
 

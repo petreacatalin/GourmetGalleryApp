@@ -10,7 +10,15 @@ public class CategoryService : ICategoryService
     {
         _categoryRepository = categoryRepository;
     }
+    public async Task<IEnumerable<Category>> GetTopLevelCategoriesAsync()
+    {
+        return await _categoryRepository.GetTopLevelCategoriesAsync();
+    }
 
+    public async Task<IEnumerable<Category>> GetSubcategoriesAsync(int categoryId)
+    {
+        return await _categoryRepository.GetSubcategoriesAsync(categoryId);
+    }
     public async Task<List<Category>> GetAllCategoriesAsync()
     {
         return await _categoryRepository.GetAllCategoriesAsync();
