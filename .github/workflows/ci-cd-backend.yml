@@ -42,22 +42,25 @@ jobs:
       - name: Publish .NET project
         run: dotnet publish ./GourmeyGalleryApp.csproj --configuration Release --output ./publish
 
-      # Set up Docker
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      # Build the Docker image for .NET app
+      # Build the Docker image for the .NET app
       - name: Build Docker image for .NET app
         run: |
           docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest -f ./Dockerfile .
 
       # Log in to Azure using the Service Principal
       - name: Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }} # Using creds from GitHub Secrets
+          enable-AzPSSession: true
+
+      # Log in to Azure Container Registry (ACR)
+      - name: Azure Container Registry Login
+        uses: azure/docker-login@v1
+        with:
+          login-server: gourmetgallery.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       # Push Docker image to Azure Container Registry
       - name: Push Docker image to Azure Container Registry
