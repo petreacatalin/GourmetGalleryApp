@@ -1,0 +1,58 @@
+name: Build and Deploy .NET App to Azure
+
+on:
+  push:
+    branches:
+      - master # Trigger on push to the main branch
+  pull_request:
+    branches:
+      - master # Trigger on pull requests to the main branch
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout repository
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Set up .NET
+    - name: Set up .NET SDK
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '8.0' # Adjust this to match your .NET version
+
+    # Restore dependencies for the .NET project
+    - name: Restore .NET dependencies
+      run: dotnet restore ./GourmeyGalleryApp.csproj
+
+    # Build the .NET project
+    - name: Build .NET project
+      run: dotnet build ./GourmeyGalleryApp.csproj --configuration Release
+
+    # Publish the .NET project
+    - name: Publish .NET project
+      run: dotnet publish ./GourmeyGalleryApp.csproj --configuration Release --output ./publish
+
+    # Build the Docker image for the backend
+    - name: Build Docker image for .NET app
+      run: |
+        docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest .
+
+    # Log in to Azure
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+
+    # Push Docker image to Azure Container Registry
+    - name: Push Docker image to Azure Container Registry
+      run: |
+        docker tag gourmetgallery.azurecr.io/gourmet-gallery-be:latest
+        docker push gourmetgallery.azurecr.io/gourmet-gallery-be:latest
+
+        
