@@ -3,14 +3,14 @@ name: Build and Deploy .NET App to Azure
 on:
   push:
     branches:
-      - master # Trigger on push to the main branch
+      - master
   pull_request:
     branches:
-      - master # Trigger on pull requests to the main branch
+      - master
   workflow_dispatch: # Manual trigger
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    # Set up .NET
+    # Set up .NET SDK
     - name: Set up .NET SDK
       uses: actions/setup-dotnet@v2
       with:
@@ -36,10 +36,14 @@ jobs:
     - name: Publish .NET project
       run: dotnet publish ./GourmeyGalleryApp.csproj --configuration Release --output ./publish
 
-    # Build the Docker image for the backend
+    # Set up Docker
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    # Build the Docker image for .NET app
     - name: Build Docker image for .NET app
       run: |
-        docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest .
+        docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest -f ./Dockerfile .
 
     # Log in to Azure
     - name: Azure Login
@@ -49,10 +53,15 @@ jobs:
         client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
 
+    # Log in to Azure Container Registry (ACR)
+    - name: Azure Container Registry Login
+      uses: azure/docker-login@v1
+      with:
+        login-server: gourmetgallery.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
     # Push Docker image to Azure Container Registry
     - name: Push Docker image to Azure Container Registry
       run: |
-        docker tag gourmetgallery.azurecr.io/gourmet-gallery-be:latest
         docker push gourmetgallery.azurecr.io/gourmet-gallery-be:latest
-
-        
