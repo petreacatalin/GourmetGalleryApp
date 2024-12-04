@@ -24,6 +24,12 @@ jobs:
         with:
           dotnet-version: '8.0' # Adjust this to match your .NET version
 
+      # Clean up obj and bin directories to avoid conflicts
+      - name: Clean obj and bin directories
+        run: |
+          rm -rf ./obj
+          rm -rf ./bin
+
       # Restore dependencies for the .NET project
       - name: Restore .NET dependencies
         run: dotnet restore ./GourmeyGalleryApp.csproj
