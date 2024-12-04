@@ -254,7 +254,7 @@ public class AccountController : ControllerBase
                 <p>If you didn’t request this, please ignore this email.</p>
             </div>
             <div class='footer'>
-                <p>&copy; 2024 Company Name. All rights reserved.</p>
+                <p>&copy; 2024 Gourmet Gallery. All rights reserved.</p>
             </div>
         </div>
     </body>

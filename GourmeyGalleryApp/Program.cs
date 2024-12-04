@@ -29,7 +29,7 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-//builder.WebHost.UseUrls("http://*:80");
+builder.WebHost.UseUrls("http://*:80");
 
 // Add services to the container.
 builder.Services.AddDbContext<GourmetGalleryContext>(options =>
