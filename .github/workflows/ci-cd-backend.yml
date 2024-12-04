@@ -24,35 +24,39 @@ jobs:
         with:
           dotnet-version: '8.0' # Adjust this to match your .NET version
 
+      # Navigate to the project folder
+      - name: Navigate to project folder
+        run: cd GourmeyGalleryApp
+
       # Clean up obj and bin directories to avoid conflicts
       - name: Clean obj and bin directories
         run: |
-          rm -rf ./obj
-          rm -rf ./bin
+          rm -rf ./GourmeyGalleryApp/obj
+          rm -rf ./GourmeyGalleryApp/bin
 
       # Restore dependencies for the .NET project
       - name: Restore .NET dependencies
-        run: dotnet restore ./GourmeyGalleryApp.csproj
+        run: dotnet restore ./GourmeyGalleryApp/GourmeyGalleryApp.csproj
 
       # Build the .NET project
       - name: Build .NET project
-        run: dotnet build ./GourmeyGalleryApp.csproj --configuration Release
+        run: dotnet build ./GourmeyGalleryApp/GourmeyGalleryApp.csproj --configuration Release
 
       # Publish the .NET project
       - name: Publish .NET project
-        run: dotnet publish ./GourmeyGalleryApp.csproj --configuration Release --output ./publish
+        run: dotnet publish ./GourmeyGalleryApp/GourmeyGalleryApp.csproj --configuration Release --output ./publish
 
-      # Build the Docker image for the .NET app
+      # Build the Docker image for .NET app
       - name: Build Docker image for .NET app
         run: |
-          docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest -f ./Dockerfile .
+          docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest -f ./GourmeyGalleryApp/Dockerfile ./GourmeyGalleryApp
 
       # Log in to Azure using the Service Principal
       - name: Azure Login
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }} # Using creds from GitHub Secrets
-          enable-AzPSSession: true
+         creds: ${{ secrets.AZURE_CREDENTIALS }} # Using creds from GitHub Secrets,
+         enable-AzPSSession: true
 
       # Log in to Azure Container Registry (ACR)
       - name: Azure Container Registry Login
