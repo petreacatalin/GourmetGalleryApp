@@ -49,7 +49,7 @@ jobs:
       # Build the Docker image for .NET app
       - name: Build Docker image for .NET app
         run: |
-          docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest .
+         docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest -f ./GourmeyGalleryApp/Dockerfile ./GourmeyGalleryApp
 
       # Log in to Azure using the Service Principal
       - name: Azure Login
