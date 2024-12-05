@@ -49,13 +49,13 @@ jobs:
       # Build the Docker image for .NET app
       - name: Build Docker image for .NET app
         run: |
-          docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest -f ./GourmeyGalleryApp/Dockerfile ./GourmeyGalleryApp
+          docker build -t gourmetgallery.azurecr.io/gourmet-gallery-be:latest .
 
       # Log in to Azure using the Service Principal
       - name: Azure Login
         uses: azure/login@v2
         with:
-         creds: ${{ secrets.AZURE_CREDENTIALS }} # Using creds from GitHub Secrets,
+         creds: ${{ secrets.AZURE_CREDENTIALS }}, # Using creds from GitHub Secrets
          enable-AzPSSession: true
 
       # Log in to Azure Container Registry (ACR)
