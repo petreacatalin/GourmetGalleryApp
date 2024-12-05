@@ -26,7 +26,7 @@ jobs:
 
       # Navigate to the project folder
       - name: Navigate to project folder
-        run: cd GourmeyGalleryApp/GourmeyGalleryApp
+        run: cd ./GourmeyGalleryApp
 
       # Clean up obj and bin directories to avoid conflicts
       - name: Clean obj and bin directories
