@@ -55,8 +55,8 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-         creds: ${{ secrets.AZURE_CREDENTIALS }}, # Using creds from GitHub Secrets
-         enable-AzPSSession: true
+          creds: ${{ secrets.AZURE_CREDENTIALS }} # Using creds from GitHub Secrets,
+          enable-AzPSSession: true
 
       # Log in to Azure Container Registry (ACR)
       - name: Azure Container Registry Login
