@@ -61,7 +61,8 @@ public class AccountController : ControllerBase
             LastName = registerDto.LastName,
             UserName = registerDto.Email,
             Email = registerDto.Email,
-            ProfilePictureUrl = registerDto.ProfilePictureUrl ?? "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/profile-circle.png"
+            ProfilePictureUrl = registerDto.ProfilePictureUrl ?? "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/profile-circle.png",
+            JoinedAt = DateTime.UtcNow 
         };
 
         var result = await _userManager.CreateAsync(user, registerDto.Password);

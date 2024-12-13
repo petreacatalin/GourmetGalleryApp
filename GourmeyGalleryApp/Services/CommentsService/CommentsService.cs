@@ -6,6 +6,7 @@ using GourmeyGalleryApp.Models.DTOs.ApplicationUser;
 using GourmeyGalleryApp.Models.DTOs.Comments;
 using GourmeyGalleryApp.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -71,9 +72,9 @@ namespace GourmeyGalleryApp.Services
             var comment = await _commentsRepository.GetFirstOrDefaultAsync(
                 c => c.Id == id,
                 include: query => query
-                    .Include(c => c.User)
-                    .Include(c => c.Replies).ThenInclude(r => r.User) // Include replies and their users
-                    .Include(c => c.Replies).ThenInclude(r => r.Replies) // Optionally include nested replies
+                    .Include(c => c.User).ThenInclude(u => u.UserBadges) // Include UserBadges for the user
+                    .Include(c => c.Replies).ThenInclude(r => r.User)
+                    .Include(c => c.Replies).ThenInclude(r => r.Replies)
             );
 
             if (comment == null) return null;
@@ -101,8 +102,21 @@ namespace GourmeyGalleryApp.Services
                     Id = comment.User.Id,
                     FirstName = comment.User.FirstName,
                     LastName = comment.User.LastName,
-                    ProfilePictureUrl = comment.User.ProfilePictureUrl
+                    ProfilePictureUrl = comment.User.ProfilePictureUrl,
+                    Badges = comment.User.UserBadges != null
+              ? comment.User.UserBadges.Select(ub => new BadgeDto
+              {
+                  IconUrl = ub.Badge.IconUrl,
+                  Name = ub.Badge.Name,
+                  Description = ub.Badge.Description,
+                  Points = ub.Badge.Points
+                  //UserId = ub.UserId,
+                  //EarnedDate = ub.EarnedDate
+              }).ToList()
+              : new List<BadgeDto>()
+              ,
                 },
+                
                 ParentCommentId = comment.ParentCommentId,
                 ParentComment = comment.ParentComment != null ? new CommentDto
                 {
@@ -118,7 +132,18 @@ namespace GourmeyGalleryApp.Services
                         Id = comment.ParentComment.User.Id,
                         FirstName = comment.ParentComment.User.FirstName,
                         LastName = comment.ParentComment.User.LastName,
-                        ProfilePictureUrl = comment.ParentComment.User.ProfilePictureUrl
+                        ProfilePictureUrl = comment.ParentComment.User.ProfilePictureUrl,
+                        Badges = comment.User.UserBadges != null
+              ? comment.User.UserBadges.Select(ub => new BadgeDto
+              {
+                  IconUrl = ub.Badge.IconUrl,
+                  Name = ub.Badge.Name,
+                  Description = ub.Badge.Description,
+                  Points = ub.Badge.Points
+                  //UserId = ub.UserId,
+                  //EarnedDate = ub.EarnedDate
+              }).ToList()
+              : new List<BadgeDto>()
                     }
                 } : null,
                 Replies = comment.Replies != null
@@ -128,6 +153,7 @@ namespace GourmeyGalleryApp.Services
 
             return commentDto;
         }
+
         public async Task<IEnumerable<CommentDto>> GetCommentsForRecipeAsync(int recipeId)
         {
             // Fetch all comments for the recipe, including replies
@@ -152,13 +178,24 @@ namespace GourmeyGalleryApp.Services
                     UserId = c.Rating.UserId,
                     RecipeId = c.Rating.RecipeId,
                 } : null,
-                User = new ApplicationUserDto
+                User = c.User != null ? new ApplicationUserDto
                 {
                     Id = c.User.Id,
                     FirstName = c.User.FirstName,
                     LastName = c.User.LastName,
-                    ProfilePictureUrl = c.User.ProfilePictureUrl
-                },
+                    ProfilePictureUrl = c.User.ProfilePictureUrl,
+                    Badges = c.User.UserBadges != null
+              ? c.User.UserBadges.Select(ub => new BadgeDto
+              {
+                  IconUrl = ub.Badge.IconUrl,
+                  Name = ub.Badge.Name,
+                  Description = ub.Badge.Description,
+                  Points = ub.Badge.Points
+                  //UserId = ub.UserId,
+                  //EarnedDate = ub.EarnedDate
+              }).ToList()
+              : new List<BadgeDto>()
+                } : null,
                 ParentCommentId = c.ParentCommentId,
                 ParentComment = c.ParentComment != null ? new CommentDto
                 {
@@ -169,17 +206,27 @@ namespace GourmeyGalleryApp.Services
                     Updated = c.ParentComment.Updated,
                     Submitted = c.ParentComment.Submitted,
                     RatingId = c.ParentComment.RatingId,
-                    User = new ApplicationUserDto
+                    User = c.ParentComment.User != null ? new ApplicationUserDto
                     {
                         Id = c.ParentComment.User.Id,
                         FirstName = c.ParentComment.User.FirstName,
                         LastName = c.ParentComment.User.LastName,
-                        ProfilePictureUrl = c.ParentComment.User.ProfilePictureUrl
-                    }
+                        ProfilePictureUrl = c.ParentComment.User.ProfilePictureUrl,
+                        Badges = c.User.UserBadges != null
+              ? c.User.UserBadges.Select(ub => new BadgeDto
+              {
+                  IconUrl = ub.Badge.IconUrl,
+                  Name = ub.Badge.Name,
+                  Points = ub.Badge.Points,
+                  Description = ub.Badge.Description
+                  //UserId = ub.UserId,
+                  //EarnedDate = ub.EarnedDate
+              }).ToList()
+              : new List<BadgeDto>()
+                    } : null,
                 } : null,
                 Replies = new List<CommentDto>() // Initialize with an empty list
             }).ToDictionary(c => c.Id);
-
             // Organize comments by adding replies to their parent comments
             foreach (var comment in commentDtos.Values)
             {

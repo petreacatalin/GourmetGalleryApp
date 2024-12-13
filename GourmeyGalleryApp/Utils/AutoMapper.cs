@@ -20,7 +20,10 @@ public class AutoMapperProfile : Profile
         CreateMap<InformationTime, InformationTimeDto>().ReverseMap();
         CreateMap<NutritionFacts, NutritionFactsDto>().ReverseMap();
         CreateMap<Category, CategoryDto>().ReverseMap();
-
+        CreateMap<UserBadge, UserBadgeDto>().ReverseMap();
+        CreateMap<Badge, BadgeDto>().ReverseMap();
+        CreateMap<ApplicationUser, ApplicationUserDto>()
+    .ForMember(dest => dest.Badges, opt => opt.MapFrom(src => src.UserBadges));
 
     }
 }

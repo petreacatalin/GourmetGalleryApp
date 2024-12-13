@@ -25,6 +25,10 @@ public class GourmetGalleryContext : IdentityDbContext<ApplicationUser>
     public DbSet<Category> Categories { get; set; }
     public DbSet<RecipeCategory> RecipeCategories { get; set; }
     public DbSet<CommentVote> CommentVotes { get; set; }
+    public DbSet<Badge> Badges { get; set; }
+    public DbSet<UserBadge> UserBadges { get; set; }
+    public DbSet<UserPoints> UserPoints { get; set; }
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -203,6 +207,23 @@ public class GourmetGalleryContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<CommentVote>()
             .HasIndex(cv => new { cv.CommentId, cv.UserId })
             .IsUnique();
+
+        modelBuilder.Entity<UserBadge>()
+         .HasKey(ub => ub.Id);
+
+        modelBuilder.Entity<UserBadge>()
+            .HasOne(ub => ub.User)
+            .WithMany(u => u.UserBadges)
+            .HasForeignKey(ub => ub.UserId);
+
+        modelBuilder.Entity<UserBadge>()
+            .HasOne(ub => ub.Badge)
+            .WithMany()
+            .HasForeignKey(ub => ub.BadgeId);
+
+        modelBuilder.Entity<Badge>()
+        .Property(b => b.Condition)
+        .HasConversion<string>();
     }
 
 }

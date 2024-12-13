@@ -20,6 +20,8 @@ using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Azure;
 using GourmeyGalleryApp.Repositories.CategoryRepository;
 using GourmeyGalleryApp.Services.CategoryService;
+using GourmeyGalleryApp.Repositories.BadgeRepository;
+using GourmeyGalleryApp.Services.BadgeService;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -63,6 +65,8 @@ builder.Services.AddScoped<ICommentsService, CommentsService>();
 builder.Services.AddScoped<IRecipeService, RecipeService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IBadgeRepository, BadgeRepository>();
+builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddSingleton<BlobStorageService>(sp =>
         new BlobStorageService(sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddTransient<IEmailService, EmailService>();
@@ -121,6 +125,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 builder.Services.AddSwaggerGen(c =>

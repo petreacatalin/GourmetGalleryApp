@@ -21,12 +21,14 @@ namespace GourmeyGalleryApp.Infrastructure
         public async Task<IEnumerable<Comment>> GetCommentsForRecipeAsync(int recipeId)
         {
             return await _context.Comments
-                .Where(c => c.RecipeId == recipeId)
-                .Include(c => c.Rating)
-                .Include(c => c.User)
-                .Include(c=> c.Replies)
-                .OrderByDescending(c => c.Submitted)
-                .ToListAsync();
+       .Where(c => c.RecipeId == recipeId)
+       .Include(c => c.Rating) // Include comment rating
+       .Include(c => c.User) // Include the user who submitted the comment
+           .ThenInclude(u => u.UserBadges) // Include user badges
+           .ThenInclude(ub => ub.Badge) // Include badge details
+       .Include(c => c.Replies) // Include comment replies
+       .OrderByDescending(c => c.Submitted) // Order by submission date (most recent first)
+       .ToListAsync();
         }
 
         public async Task<Comment?> GetCommentByIdAsync(int id)

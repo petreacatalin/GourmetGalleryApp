@@ -8,6 +8,8 @@ namespace GourmeyGalleryApp.Models.Entities
         public string LastName { get; set; }
         public string ProfilePictureUrl { get; set; }
         public bool IsAdmin { get; set; } = false;
+        public DateTime JoinedAt { get; set; }
+        public string? About { get; set; }
         public ICollection<Friend> FriendsAdded { get; set; }
 
         // Navigation property representing friends who added the user
@@ -20,5 +22,6 @@ namespace GourmeyGalleryApp.Models.Entities
         public ICollection<Recipe> Recipes { get; set; }
         public ICollection<UserFavoriteRecipe> UserFavoriteRecipes { get; set; }
         public ICollection<CommentVote> CommentVotes { get; set; } = new List<CommentVote>();  // Votes cast by the user
+        public ICollection<UserBadge> UserBadges { get; set; } = new List<UserBadge>();
     }
 }
