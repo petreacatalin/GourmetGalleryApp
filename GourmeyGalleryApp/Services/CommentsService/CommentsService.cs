@@ -72,7 +72,7 @@ namespace GourmeyGalleryApp.Services
             var comment = await _commentsRepository.GetFirstOrDefaultAsync(
                 c => c.Id == id,
                 include: query => query
-                    .Include(c => c.User).ThenInclude(u => u.UserBadges) // Include UserBadges for the user
+                    .Include(c => c.User).ThenInclude(u => u.UserBadges).ThenInclude(b=>b.Badge) // Include UserBadges for the user
                     .Include(c => c.Replies).ThenInclude(r => r.User)
                     .Include(c => c.Replies).ThenInclude(r => r.Replies)
             );
@@ -97,7 +97,7 @@ namespace GourmeyGalleryApp.Services
                     UserId = comment.Rating.UserId,
                     RecipeId = comment.Rating.RecipeId,
                 } : null,
-                User = new ApplicationUserDto
+                User = comment.User != null ? new ApplicationUserDto
                 {
                     Id = comment.User.Id,
                     FirstName = comment.User.FirstName,
@@ -109,14 +109,12 @@ namespace GourmeyGalleryApp.Services
                   IconUrl = ub.Badge.IconUrl,
                   Name = ub.Badge.Name,
                   Description = ub.Badge.Description,
-                  Points = ub.Badge.Points
+                  Points = ub.Badge.Points,
                   //UserId = ub.UserId,
                   //EarnedDate = ub.EarnedDate
               }).ToList()
               : new List<BadgeDto>()
-              ,
-                },
-                
+                } : null,
                 ParentCommentId = comment.ParentCommentId,
                 ParentComment = comment.ParentComment != null ? new CommentDto
                 {

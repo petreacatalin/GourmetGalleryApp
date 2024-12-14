@@ -12,7 +12,7 @@ namespace GourmeyGalleryApp.Models.DTOs.ApplicationUser
         public string? About { get; set; }
 
         public DateTime JoinedAt { get; set; }
-        public List<BadgeDto> Badges { get; set; }
+        public List<BadgeDto>? Badges { get; set; } = new List<BadgeDto>();
 
     }
 }
