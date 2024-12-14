@@ -22,6 +22,7 @@ using GourmeyGalleryApp.Repositories.CategoryRepository;
 using GourmeyGalleryApp.Services.CategoryService;
 using GourmeyGalleryApp.Repositories.BadgeRepository;
 using GourmeyGalleryApp.Services.BadgeService;
+using System.Security.Claims;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,13 +43,16 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectio
             errorNumbersToAdd: null)));
 //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+         options.SignIn.RequireConfirmedEmail = true;
+    })
     .AddEntityFrameworkStores<GourmetGalleryContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.ExpireTimeSpan = TimeSpan.FromDays(1);
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -93,8 +97,34 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidIssuer = builder.Configuration["JwtConfig:Issuer"],
         ValidAudience = builder.Configuration["JwtConfig:Audience"],
-        ClockSkew = TimeSpan.Zero, 
+        ClockSkew = TimeSpan.Zero,
         RoleClaimType = "role"
+    };
+})
+.AddGoogle(googleOptions =>
+{
+    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    googleOptions.CallbackPath = "/signin-google"; // Set the callback URL
+    googleOptions.Events.OnCreatingTicket = async context =>
+    {
+        // Retrieve UserManager from the service provider
+        var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var email = context.Principal.FindFirstValue(ClaimTypes.Email);
+        var user = await userManager.FindByEmailAsync(email);
+
+        if (user == null)
+        {
+            user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true // Google guarantees the email is verified
+            };
+
+            await userManager.CreateAsync(user);
+        }
     };
 });
 

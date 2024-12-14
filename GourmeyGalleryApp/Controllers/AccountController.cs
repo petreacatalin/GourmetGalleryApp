@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using GourmeyGalleryApp.Models.DTOs.ApplicationUser;
 using GourmeyGalleryApp.Services.EmailService;
 using GourmeyGalleryApp.Services.RecipeService;
+using Google.Apis.Auth;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -25,6 +26,7 @@ public class AccountController : ControllerBase
     private readonly BlobStorageService _blobStorageService;
     private readonly IRecipeService _recipeService;
     private readonly RoleManager<IdentityRole> _roleManager; // Add this line
+    private const string profilePictureUrl = "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/profile-circle.png";
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -61,7 +63,7 @@ public class AccountController : ControllerBase
             LastName = registerDto.LastName,
             UserName = registerDto.Email,
             Email = registerDto.Email,
-            ProfilePictureUrl = registerDto.ProfilePictureUrl ?? "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/profile-circle.png",
+            ProfilePictureUrl = registerDto.ProfilePictureUrl ?? profilePictureUrl,
             JoinedAt = DateTime.UtcNow 
         };
 
@@ -72,7 +74,7 @@ public class AccountController : ControllerBase
             return BadRequest(result.Errors);
         }
 
-        string roleToAssign = "User"; // Change this to the desired role or make it dynamic based on your requirement
+        string roleToAssign = "User"; 
         if (!await _roleManager.RoleExistsAsync(roleToAssign))
         {
             return BadRequest($"Role '{roleToAssign}' does not exist.");
@@ -84,25 +86,41 @@ public class AccountController : ControllerBase
             return BadRequest(roleResult.Errors);
         }
 
-        return Ok();
+        // Generate email confirmation token
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account",
+            new { token, email = user.Email }, Request.Scheme);
+
+        // Send confirmation email
+        var subject = "Confirm your email";
+        var message = $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>link</a>";
+        await _emailService.SendEmailAsync(user.Email, subject, message);
+
+        return Ok("Registration successful. Please confirm your email.");
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        var user = await _userManager.FindByEmailAsync(loginDto.UserName);
+
         var invalidResult = new AuthResult()
         {
             Result = false,
             Errors = { "Invalid login attempt." }
         };
-        if (user == null)
-        {
+        var user = await _userManager.FindByEmailAsync(loginDto.UserName);
+
+        if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password))
             return Unauthorized(invalidResult);
+
+        if (!await _userManager.IsEmailConfirmedAsync(user))
+        {
+            invalidResult.Errors.Clear();
+            invalidResult.Errors.Add("Email not confirmed.");
+            return BadRequest(invalidResult);
         }
 
-        var result = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-        if (!result)
+        if (user == null)
         {
             return Unauthorized(invalidResult);
         }
@@ -111,8 +129,7 @@ public class AccountController : ControllerBase
         return Ok(new AuthResult()
         {
             Token = token,
-            Result = true,
-
+            Result = true
         });
     }
 
@@ -155,7 +172,88 @@ public class AccountController : ControllerBase
         return tokenHandler.WriteToken(token);
     }
 
+    [HttpGet("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail(string token, string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+        {
+            return BadRequest("Invalid email confirmation request.");
+        }
 
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        if (!result.Succeeded)
+        {
+            return BadRequest("Email confirmation failed.");
+        }
+
+        return Ok("Email confirmed successfully.");
+    }
+    public class GoogleLoginRequest
+    {
+        public string IdToken { get; set; } // This matches the `idToken` field sent from the frontend.
+    }
+
+    [HttpPost("google-login")]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
+    {
+        var payload = await VerifyGoogleToken(request.IdToken);
+
+        if (payload == null)
+        {
+            return BadRequest("Invalid Google token.");
+        }
+
+        // Check if the user exists in the database
+        var user = await _userManager.FindByEmailAsync(payload.Email);
+
+        if (user == null)
+        {
+            // Create a new user if not found
+            user = new ApplicationUser
+            {
+                UserName = payload.Email,
+                FirstName = payload.GivenName,
+                LastName = payload.FamilyName,
+                Email = payload.Email,
+                ProfilePictureUrl = profilePictureUrl,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user);
+            if (!result.Succeeded)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "User creation failed.");
+            }
+        }
+
+        // Generate a JWT or login the user
+        var token = GenerateJwtToken(user);
+
+        return Ok(new AuthResult()
+        {
+            Token = token.Result,
+            Result = true
+        });
+    }
+
+
+    private async Task<GoogleJsonWebSignature.Payload> VerifyGoogleToken(string idToken)
+    {
+        try
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings()
+            {
+                Audience = new List<string> { "699433768038-tip0u2mr5q20vhkm41gjkk5cdk0j6hs2.apps.googleusercontent.com" } // Replace with your actual client ID
+            };
+
+            return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
@@ -188,78 +286,78 @@ public class AccountController : ControllerBase
 
     private async Task SendResetPasswordEmail(string email, string resetLink)
     {
-        var subject = "Password Reset Request";
-        var body = $@"
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset='UTF-8'>
-        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                color: #333;
-                margin: 0;
-                padding: 20px;
-            }}
-            .container {{
-                background: #ffffff;
-                border-radius: 8px;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            }}
-            .header {{
-                text-align: center;
-                margin-bottom: 20px;
-            }}
-            .header img {{
-                max-width: 150px;
-            }}
-            .content {{
-                margin-bottom: 20px;
-            }}
-            .footer {{
-                font-size: 0.875rem;
-                color: #888;
-                text-align: center;
-            }}
-            .btn {{
-                display: inline-block;
-                font-size: 1rem;
-                color: #ffffff;
-                background-color: #007bff;
-                padding: 12px 20px;
-                text-decoration: none;
-                border-radius: 4px;
-                margin: 10px 0;
-                text-align: center;
-            }}
-            .btn:hover {{
-                background-color: #0056b3;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class='container'>
-            <div class='header'>
-                <img src='https://www.shutterstock.com/image-vector/circle-line-simple-design-logo-600nw-2174926871.jpg' alt='Company Logo'>
+          var subject = "Password Reset Request";
+          var body = $@"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    background-color: #f4f4f4;
+                    color: #333;
+                    margin: 0;
+                    padding: 20px;
+                }}
+                .container {{
+                    background: #ffffff;
+                    border-radius: 8px;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                }}
+                .header {{
+                    text-align: center;
+                    margin-bottom: 20px;
+                }}
+                .header img {{
+                    max-width: 150px;
+                }}
+                .content {{
+                    margin-bottom: 20px;
+                }}
+                .footer {{
+                    font-size: 0.875rem;
+                    color: #888;
+                    text-align: center;
+                }}
+                .btn {{
+                    display: inline-block;
+                    font-size: 1rem;
+                    color: #ffffff;
+                    background-color: #007bff;
+                    padding: 12px 20px;
+                    text-decoration: none;
+                    border-radius: 4px;
+                    margin: 10px 0;
+                    text-align: center;
+                }}
+                .btn:hover {{
+                    background-color: #0056b3;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <img src='https://www.shutterstock.com/image-vector/circle-line-simple-design-logo-600nw-2174926871.jpg' alt='Company Logo'>
+                </div>
+                <div class='content'>
+                    <h2>Password Reset Request</h2>
+                    <p>Hello,</p>
+                    <p>We received a request to reset your password. Click the button below to reset it:</p>
+                    <a href='{resetLink}' class='btn'>Reset Password</a>
+                    <p>If you didn’t request this, please ignore this email.</p>
+                </div>
+                <div class='footer'>
+                    <p>&copy; 2024 Gourmet Gallery. All rights reserved.</p>
+                </div>
             </div>
-            <div class='content'>
-                <h2>Password Reset Request</h2>
-                <p>Hello,</p>
-                <p>We received a request to reset your password. Click the button below to reset it:</p>
-                <a href='{resetLink}' class='btn'>Reset Password</a>
-                <p>If you didn’t request this, please ignore this email.</p>
-            </div>
-            <div class='footer'>
-                <p>&copy; 2024 Gourmet Gallery. All rights reserved.</p>
-            </div>
-        </div>
-    </body>
-    </html>";
+        </body>
+        </html>";
 
         await _emailService.SendEmailAsync(email, subject, body);
     }
