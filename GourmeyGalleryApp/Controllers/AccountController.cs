@@ -240,9 +240,10 @@ public class AccountController : ControllerBase
 
         try
         {
-            if (user != null)
+            var userHasRole = await _userManager.IsInRoleAsync(user, roleToAssign);
+            if (user != null && !userHasRole)
             {
-
+               
                 var roleResult = await _userManager.AddToRoleAsync(user, roleToAssign);
                 if (!roleResult.Succeeded)
                 {
