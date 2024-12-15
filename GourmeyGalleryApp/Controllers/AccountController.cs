@@ -89,14 +89,19 @@ public class AccountController : ControllerBase
         // Generate email confirmation token
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account",
-            new { token, email = user.Email }, Request.Scheme);
+            new { token, email = user.UserName }, Request.Scheme);
 
         // Send confirmation email
         var subject = "Confirm your email";
         var message = $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>link</a>";
         await _emailService.SendEmailAsync(user.Email, subject, message);
 
-        return Ok("Registration successful. Please confirm your email.");
+        return Ok(new AuthResult()
+        {            
+            Result = true,
+            SuccessMessage = "Registration successful. Please confirm your email."
+        });
+       
     }
 
     [HttpPost("login")]
@@ -225,6 +230,18 @@ public class AccountController : ControllerBase
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "User creation failed.");
             }
+        }
+
+        string roleToAssign = "User";
+        if (!await _roleManager.RoleExistsAsync(roleToAssign))
+        {
+            return BadRequest($"Role '{roleToAssign}' does not exist.");
+        }
+
+        var roleResult = await _userManager.AddToRoleAsync(user, roleToAssign);
+        if (!roleResult.Succeeded)
+        {
+            return BadRequest(roleResult.Errors);
         }
 
         // Generate a JWT or login the user
