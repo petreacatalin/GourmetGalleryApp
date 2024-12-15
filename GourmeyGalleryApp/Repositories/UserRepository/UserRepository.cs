@@ -80,6 +80,7 @@ namespace GourmetGallery.Infrastructure.Repositories
             }
 
             var favoriteRecipes = await _context.UserFavoriteRecipes
+                .AsNoTracking()
                 .Where(uf => uf.UserId == userId)
                 .Select(uf => uf.Recipe)
                 .ToListAsync();

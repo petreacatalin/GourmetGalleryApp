@@ -20,7 +20,7 @@ namespace GourmeyGalleryApp.Infrastructure
 
         public async Task<IEnumerable<Comment>> GetCommentsForRecipeAsync(int recipeId)
         {
-            return await _context.Comments
+            return await _context.Comments.AsNoTracking()
        .Where(c => c.RecipeId == recipeId)
        .Include(c => c.Rating) // Include comment rating
        .Include(c => c.User) // Include the user who submitted the comment
@@ -50,11 +50,11 @@ namespace GourmeyGalleryApp.Infrastructure
 
         public async Task<IEnumerable<Comment>> GetRepliesAsync(int parentId)
         {
-           return await _context.Comments.Where(c => c.ParentCommentId == parentId).ToListAsync();
+           return await _context.Comments.AsNoTracking().Where(c => c.ParentCommentId == parentId).ToListAsync();
         }
         public async Task<CommentVote?> GetUserVoteForCommentAsync(int commentId, string userId)
         {
-            return await _context.CommentVotes
+            return await _context.CommentVotes.AsNoTracking()   
                 .FirstOrDefaultAsync(v => v.CommentId == commentId && v.UserId == userId);
         }
 

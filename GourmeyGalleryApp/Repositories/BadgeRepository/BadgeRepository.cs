@@ -15,7 +15,7 @@ namespace GourmeyGalleryApp.Repositories.BadgeRepository
 
         public async Task<IEnumerable<Badge>> GetBadgesAsync()
         {
-            var badgesQuery = _context.Badges.AsQueryable();
+            var badgesQuery = _context.Badges.AsNoTracking().AsQueryable();
 
             // Pagination logic
             var badges = await badgesQuery.ToListAsync();
@@ -28,20 +28,20 @@ namespace GourmeyGalleryApp.Repositories.BadgeRepository
             switch (badge.Condition)
             {
                 case BadgeCondition.FirstRecipePosted:
-                    return await _context.Recipes.AnyAsync(r => r.ApplicationUserId == userId);
+                    return await _context.Recipes.AsNoTracking().AnyAsync(r => r.ApplicationUserId == userId);
                 case BadgeCondition.RecipeEnthusiast:
-                    return await _context.Recipes.CountAsync(r => r.ApplicationUserId == userId) >= 5;
+                    return await _context.Recipes.AsNoTracking().CountAsync(r => r.ApplicationUserId == userId) >= 5;
                 case BadgeCondition.RecipeMaster:
-                    return await _context.Recipes.CountAsync(r => r.ApplicationUserId == userId) >= 20;
+                    return await _context.Recipes.AsNoTracking().CountAsync(r => r.ApplicationUserId == userId) >= 20;
                 case BadgeCondition.RecipeExplorer:
-                    return await _context.Recipes
+                    return await _context.Recipes.AsNoTracking()
                         .Where(r => r.ApplicationUserId != userId)
                         .CountAsync() >= 100;
                 case BadgeCondition.EarlyAdopter:
                     var user = await _context.Users.FindAsync(userId);
                     return user?.JoinedAt <= DateTime.UtcNow.AddDays(-30);
                 case BadgeCondition.OneYearAnniversary:
-                    return await _context.Users
+                    return await _context.Users.AsNoTracking()
                         .Where(u => u.Id == userId)
                         .AnyAsync(u => u.JoinedAt <= DateTime.UtcNow.AddYears(-1));
                 default:
@@ -105,7 +105,7 @@ namespace GourmeyGalleryApp.Repositories.BadgeRepository
         public async Task ProcessUserBadgesAsync(string userId)
         {
             // Fetch all active badges
-            var activeBadges = await _context.Badges.Where(b => b.IsActive).ToListAsync();
+            var activeBadges = await _context.Badges.AsNoTracking().Where(b => b.IsActive).ToListAsync();
 
             foreach (var badge in activeBadges)
             {
@@ -113,7 +113,7 @@ namespace GourmeyGalleryApp.Repositories.BadgeRepository
                 var isConditionMet = await IsConditionMetAsync(userId, badge);
 
                 // Check if the user already has the badge
-                var userBadge = await _context.UserBadges
+                var userBadge = await _context.UserBadges.AsNoTracking()
                     .FirstOrDefaultAsync(ub => ub.UserId == userId && ub.BadgeId == badge.Id);
 
                 if (isConditionMet)
@@ -149,7 +149,7 @@ namespace GourmeyGalleryApp.Repositories.BadgeRepository
 
         public async Task<IEnumerable<Badge>> GetUserBadgesAsync(string userId)
         {
-            return await _context.UserBadges
+            return await _context.UserBadges.AsNoTracking() 
                 .Where(ub => ub.UserId == userId)
                 .Select(ub => ub.Badge)
                 .ToListAsync();

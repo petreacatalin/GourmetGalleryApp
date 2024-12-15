@@ -71,6 +71,7 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
         public async Task<List<Recipe>> GetAllRecipesWithDetailsAsync(bool? isAdmin)
         {
             return await _context.Recipes
+                .AsNoTracking()
                 .Include(r => r.IngredientsTotal)
                     .ThenInclude(it => it.Ingredients)
                 .Include(r => r.Instructions)
@@ -85,7 +86,7 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
 
         public async Task<Recipe> GetRecipeByIdAsync(int id)
         {
-            var recipeById = await _context.Recipes
+            var recipeById = await _context.Recipes.AsNoTracking()
           .Include(r => r.IngredientsTotal)
               .ThenInclude(it => it.Ingredients)
           .Include(r => r.Instructions)
@@ -116,7 +117,7 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
         }
         public async Task<List<Rating>> GetRatingsByRecipeId(int id)
         {
-            return await _context.Ratings.Where(x => x.RecipeId == id)
+            return await _context.Ratings.AsNoTracking().Where(x => x.RecipeId == id)
                 .Include(x=> x.User)
                 .Include(x=> x.Recipe)
                 .ToListAsync();
@@ -124,7 +125,7 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
 
         public async Task<List<Recipe>> GetRecipesByUserIdAsync(string userId)
         {
-            return await _context.Recipes
+            return await _context.Recipes.AsNoTracking()
                                  .Where(r => r.ApplicationUserId == userId)  // Assuming you have a UserId property in Recipe
                                  .ToListAsync();
         }
@@ -133,6 +134,7 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
         {
             // Fetch recipes along with their comments
             var recipes = await _context.Recipes
+                .AsNoTracking()
                 .Include(x => x.InformationTime)
                 .Include(r => r.Comments)
                     .ThenInclude(c => c.Rating) 
@@ -175,6 +177,7 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
         public async Task<List<Recipe>> GetLatestRecipesAsync(int count)
         {
             var latestRecipes = await _context.Recipes
+                .AsNoTracking()
                 .Include(x => x.InformationTime)
                 .Include(r => r.Comments)
                     .ThenInclude(c => c.Rating)
@@ -214,7 +217,7 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
         }
         public async Task<List<Recipe>> GetRecipesByStatusAsync(RecipeStatus status)
         {
-            return await _context.Recipes.Where(r => r.Status == status).ToListAsync();
+            return await _context.Recipes.AsNoTracking().Where(r => r.Status == status).ToListAsync();
         }
 
         public async Task SaveChangesAsync()
