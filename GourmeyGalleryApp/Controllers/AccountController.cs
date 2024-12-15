@@ -306,7 +306,7 @@ public class AccountController : ControllerBase
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
         // Generate the URL for Angular app
-        var resetLink = $"{_configuration["AppUrl"]}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(user.Email)}";
+        var resetLink = $"{_configuration["AzureAppUrl"]}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(user.Email)}";
 
         // Send the resetLink via email
         await SendResetPasswordEmail(user.Email, resetLink);
