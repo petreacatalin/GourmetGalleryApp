@@ -238,18 +238,32 @@ public class AccountController : ControllerBase
             return BadRequest($"Role '{roleToAssign}' does not exist.");
         }
 
-        var roleResult = await _userManager.AddToRoleAsync(user, roleToAssign);
-        if (!roleResult.Succeeded)
+        try
         {
-            return BadRequest(roleResult.Errors);
+            if (user != null)
+            {
+
+                var roleResult = await _userManager.AddToRoleAsync(user, roleToAssign);
+                if (!roleResult.Succeeded)
+                {
+                    return Ok(roleResult.Errors);
+                }
+
+            }
+
+        }
+        catch (Exception ex)
+        {
+
+            throw ex;
         }
 
         // Generate a JWT or login the user
-        var token = GenerateJwtToken(user);
+        var token = await GenerateJwtToken(user);
 
         return Ok(new AuthResult()
         {
-            Token = token.Result,
+            Token = token,
             Result = true
         });
     }
