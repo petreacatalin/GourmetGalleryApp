@@ -45,10 +45,15 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectio
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
-         options.SignIn.RequireConfirmedEmail = true;
+        options.SignIn.RequireConfirmedEmail = true;
     })
     .AddEntityFrameworkStores<GourmetGalleryContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+{
+    options.TokenLifespan = TimeSpan.FromHours(1); // Set token expiration to 1 hours
+});
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

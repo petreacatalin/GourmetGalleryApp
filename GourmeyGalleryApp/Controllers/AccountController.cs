@@ -99,7 +99,7 @@ public class AccountController : ControllerBase
         return Ok(new AuthResult()
         {            
             Result = true,
-            SuccessMessage = "Registration successful. Please confirm your email."
+            Message = "Registration successful. Please confirm your email."
         });
        
     }
@@ -310,7 +310,7 @@ public class AccountController : ControllerBase
 
         // Send the resetLink via email
         await SendResetPasswordEmail(user.Email, resetLink);
-        var successMessage = new AuthResult { Result = true, SuccessMessage = "Password reset link has been sent to your email address." };
+        var successMessage = new AuthResult { Result = true, Message = "Password reset link has been sent to your email address." };
 
         return Ok(successMessage);
     }
@@ -400,7 +400,7 @@ public class AccountController : ControllerBase
         var invalidResult = new AuthResult()
         {
             Result = false,
-            Errors = { "Token has expired" }
+            Errors = {  }
         };
 
         if (string.IsNullOrEmpty(resetPasswordDto.Token) || string.IsNullOrEmpty(resetPasswordDto.Email))
@@ -417,10 +417,19 @@ public class AccountController : ControllerBase
         var result = await _userManager.ResetPasswordAsync(user, resetPasswordDto.Token, resetPasswordDto.NewPassword);
         if (!result.Succeeded)
         {
+            if (result.Errors.Any()) {
+                foreach (var error in result.Errors)
+                {
+                    invalidResult.Errors.Add(error.Code);
+                    invalidResult.Message += error.Description;
+                }
+            }
             return BadRequest(invalidResult);
         }
+        else
+            return Ok(new AuthResult() { Result = true, Message = "Password has been reset" });
 
-        return Ok("Password has been reset.");
+
     }
 
     [HttpPut("profile-picture")]
