@@ -240,13 +240,14 @@ app.UseCors("AllowAll");
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
+app.UseRouting();
+
 app.UseAuthentication();
 
 app.UseAuthorization();
 
 app.UseRateLimiter(); // Add rate limiter after authentication and authorization
 
-app.UseRouting();
 
 app.MapControllers();
 
