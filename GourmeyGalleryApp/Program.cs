@@ -25,6 +25,7 @@ using GourmeyGalleryApp.Services.BadgeService;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Polly;
 
 
 
@@ -68,15 +69,15 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.IsEssential = true;
 });
 
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddFixedWindowLimiter("ResendEmailPolicy", options =>
-    {
-        options.Window = TimeSpan.FromMinutes(5);
-        options.PermitLimit = 2;
-    });
-});
-
+//builder.Services.AddRateLimiter(options =>
+//{
+//    options.AddFixedWindowLimiter("ResendEmailPolicy", options =>
+//    {
+//        options.Window = TimeSpan.FromMinutes(5);
+//        options.PermitLimit = 2;
+//    });
+//});
+builder.Services.AddSingleton<IAsyncPolicy>(Policy.RateLimitAsync(1, TimeSpan.FromMinutes(15))); // 1 request per minute
 
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -245,9 +246,6 @@ app.UseRouting();
 app.UseAuthentication();
 
 app.UseAuthorization();
-
-app.UseRateLimiter(); // Add rate limiter after authentication and authorization
-
 
 app.MapControllers();
 

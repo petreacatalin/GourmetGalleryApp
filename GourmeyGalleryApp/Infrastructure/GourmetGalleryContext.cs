@@ -67,19 +67,13 @@ public class GourmetGalleryContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(c => c.ParentCommentId)
             .OnDelete(DeleteBehavior.Restrict); // No cascade delete
 
-        //// Rating entity
-        //modelBuilder.Entity<Rating>()
-        //    .HasOne(r => r.User)
-        //    .WithMany(u => u.Ratings)
-        //    .HasForeignKey(r => r.UserId)
-        //    .OnDelete(DeleteBehavior.Restrict);
-
-        // de TESTAT
+        // Rating entity
         modelBuilder.Entity<Rating>()
-            .HasOne(r => r.User) // Navigation property to AspNetUsers
-            .WithMany() // User may have multiple ratings
-            .HasForeignKey(r => r.UserId) // Foreign key in Ratings
-            .OnDelete(DeleteBehavior.Cascade); // Enables cascade delete
+            .HasOne(r => r.User)
+            .WithMany(u => u.Ratings)
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
 
         modelBuilder.Entity<Rating>()
     .HasOne(r => r.Recipe)

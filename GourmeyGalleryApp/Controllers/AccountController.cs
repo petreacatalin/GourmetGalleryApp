@@ -13,6 +13,7 @@ using GourmeyGalleryApp.Services.EmailService;
 using GourmeyGalleryApp.Services.RecipeService;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.RateLimiting;
+using Polly;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -28,9 +29,11 @@ public class AccountController : ControllerBase
     private readonly BlobStorageService _blobStorageService;
     private readonly IRecipeService _recipeService;
     private readonly RoleManager<IdentityRole> _roleManager; // Add this line
+    private readonly IAsyncPolicy _rateLimiterPolicy;
+
     private const string profilePictureUrl = "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/profile-circle.png";
     private const string logoGourmetUrl = "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/qwr.png";
-    
+
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -40,7 +43,8 @@ public class AccountController : ControllerBase
         IEmailService emailService,
         BlobStorageService blobStorageService,
         IRecipeService recipeService,
-        RoleManager<IdentityRole> roleManager)
+        RoleManager<IdentityRole> roleManager,
+        IAsyncPolicy rateLimiterPolicy)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -51,6 +55,7 @@ public class AccountController : ControllerBase
         _blobStorageService = blobStorageService;
         _recipeService = recipeService;
         _roleManager = roleManager;
+        _rateLimiterPolicy = rateLimiterPolicy;
     }
 
     [HttpPost("register")]
@@ -101,7 +106,6 @@ public class AccountController : ControllerBase
     }
 
     [HttpPost("resend-confirmation-email")]
-    [EnableRateLimiting("ResendEmailPolicy")]
     public async Task<ActionResult> ResendConfirmationEmail([FromBody] LoginDto loginDto)
     {
         if (!ModelState.IsValid)
@@ -119,14 +123,16 @@ public class AccountController : ControllerBase
         {
             return BadRequest("Email is already confirmed.");
         }
-
         try
         {
-            await SendConfirmationEmail(user);
+            await _rateLimiterPolicy.ExecuteAsync(async () =>
+            {
+                await SendConfirmationEmail(user);
+            });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, "An error occurred while sending the confirmation email.");
+            return StatusCode(429, ex.Message.ToString());
         }
 
         return Ok(new { status = "success", code = 200, message = "Confirmation email sent successfully." });
@@ -210,7 +216,6 @@ public class AccountController : ControllerBase
 
 
     [HttpPost("login")]
-    [EnableRateLimiting("ResendEmailPolicy")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
 
@@ -284,7 +289,6 @@ public class AccountController : ControllerBase
     }
 
     [HttpGet("confirm-email")]
-    [EnableRateLimiting("ResendEmailPolicy")]
     public async Task<IActionResult> ConfirmEmail(string token, string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
@@ -422,7 +426,6 @@ public class AccountController : ControllerBase
         return Ok(successMessage);
     }
 
-    [EnableRateLimiting("ResendEmailPolicy")]
     private async Task SendResetPasswordEmail(string email, string resetLink)
     {
         var subject = "Password Reset Request";
