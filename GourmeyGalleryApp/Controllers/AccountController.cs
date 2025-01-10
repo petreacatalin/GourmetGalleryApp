@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.RateLimiting;
 
 [Route("api/[controller]")]
 [ApiController]
-[EnableRateLimiting("ResendEmailPolicy")]
 
 public class AccountController : ControllerBase
 {
@@ -513,7 +512,6 @@ public class AccountController : ControllerBase
     }
 
 
-    [EnableRateLimiting("ResendEmailPolicy")]
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
     {
