@@ -12,9 +12,12 @@ using GourmeyGalleryApp.Models.DTOs.ApplicationUser;
 using GourmeyGalleryApp.Services.EmailService;
 using GourmeyGalleryApp.Services.RecipeService;
 using Google.Apis.Auth;
+using Microsoft.AspNetCore.RateLimiting;
 
 [Route("api/[controller]")]
 [ApiController]
+[EnableRateLimiting("ResendEmailPolicy")]
+
 public class AccountController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -27,6 +30,8 @@ public class AccountController : ControllerBase
     private readonly IRecipeService _recipeService;
     private readonly RoleManager<IdentityRole> _roleManager; // Add this line
     private const string profilePictureUrl = "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/profile-circle.png";
+    private const string logoGourmetUrl = "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/qwr.png";
+    
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -86,15 +91,7 @@ public class AccountController : ControllerBase
             return BadRequest(roleResult.Errors);
         }
 
-        // Generate email confirmation token
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account",
-            new { token, email = user.UserName }, Request.Scheme);
-
-        // Send confirmation email
-        var subject = "Confirm your email";
-        var message = $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>link</a>";
-        await _emailService.SendEmailAsync(user.Email, subject, message);
+        await SendConfirmationEmail(user);
 
         return Ok(new AuthResult()
         {            
@@ -104,7 +101,117 @@ public class AccountController : ControllerBase
        
     }
 
+    [HttpPost("resend-confirmation-email")]
+    [EnableRateLimiting("ResendEmailPolicy")]
+    public async Task<ActionResult> ResendConfirmationEmail([FromBody] LoginDto loginDto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest("Invalid request data.");
+        }
+
+        var user = await _userManager.FindByEmailAsync(loginDto.UserName);
+        if (user == null)
+        {
+            return BadRequest("No user found with this email.");
+        }
+
+        if (user.EmailConfirmed)
+        {
+            return BadRequest("Email is already confirmed.");
+        }
+
+        try
+        {
+            await SendConfirmationEmail(user);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, "An error occurred while sending the confirmation email.");
+        }
+
+        return Ok(new { status = "success", code = 200, message = "Confirmation email sent successfully." });
+    }
+
+    private async Task SendConfirmationEmail(ApplicationUser user)
+    {
+        // Generate email confirmation token
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+        // Generate confirmation link
+        var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account",
+            new { token, email = user.Email }, Request.Scheme, Request.Host.ToString());
+
+        // Email subject
+        var subject = "Confirm Your Email Address";
+        string companyName = "Gourmet Gallery";
+
+        // HTML email message
+        var message = $@"
+        <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                    }}
+                    .container {{
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        border: 1px solid #dddddd;
+                        border-radius: 5px;
+                        background-color: #f9f9f9;
+                    }}
+                    .button {{
+                        display: inline-block;
+                        margin-top: 20px;
+                        padding: 10px 20px;
+                        font-size: 16px;
+                        color: #ffffff !important;
+                        background-color: #007bff;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        justify-content: center;
+                    }}
+                    .button:hover {{
+                        background-color: #0056b3;
+                    }}
+                    .header{{
+                        max-width: 100%;
+                        height: auto; 
+                        display: block;
+                        margin: 0 auto 20px; 
+                        mix-blend-mode: multiply;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                   <div class='header'>
+                        <img src='{logoGourmetUrl}' alt='{companyName} Logo'>
+                    </div>
+                    <h2>Welcome to Gourmet Gallery!</h2>
+                    <p>Thank you for creating an account with us. Please confirm your email address to activate your account.</p>
+                    <p>Click the button below to confirm your email:</p>
+                    <a href='{confirmationLink}' class='button'>Confirm Email Address</a>
+                    <p>If the button above does not work, you can also confirm your email by copying and pasting the following link into your browser:</p>
+                    <p><a href='{confirmationLink}'>{confirmationLink}</a></p>
+                    <p>If you did not sign up for Gourmet Gallery, please ignore this email.</p>
+                    <p>Thank you,<br>The Gourmet Gallery Team</p>
+                </div>
+            </body>
+        </html>";
+
+        // Send confirmation email
+        await _emailService.SendEmailAsync(user.Email, subject, message);
+    }
+
+
+
     [HttpPost("login")]
+    [EnableRateLimiting("ResendEmailPolicy")]
     public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
 
@@ -178,6 +285,7 @@ public class AccountController : ControllerBase
     }
 
     [HttpGet("confirm-email")]
+    [EnableRateLimiting("ResendEmailPolicy")]
     public async Task<IActionResult> ConfirmEmail(string token, string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
@@ -315,85 +423,97 @@ public class AccountController : ControllerBase
         return Ok(successMessage);
     }
 
-
+    [EnableRateLimiting("ResendEmailPolicy")]
     private async Task SendResetPasswordEmail(string email, string resetLink)
     {
-          var subject = "Password Reset Request";
-          var body = $@"
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset='UTF-8'>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-            <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
-                    color: #333;
-                    margin: 0;
-                    padding: 20px;
-                }}
-                .container {{
-                    background: #ffffff;
-                    border-radius: 8px;
-                    max-width: 600px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-                }}
-                .header {{
-                    text-align: center;
-                    margin-bottom: 20px;
-                }}
-                .header img {{
-                    max-width: 150px;
-                }}
-                .content {{
-                    margin-bottom: 20px;
-                }}
-                .footer {{
-                    font-size: 0.875rem;
-                    color: #888;
-                    text-align: center;
-                }}
-                .btn {{
-                    display: inline-block;
-                    font-size: 1rem;
-                    color: #ffffff;
-                    background-color: #007bff;
-                    padding: 12px 20px;
-                    text-decoration: none;
-                    border-radius: 4px;
-                    margin: 10px 0;
-                    text-align: center;
-                }}
-                .btn:hover {{
-                    background-color: #0056b3;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class='container'>
-                <div class='header'>
-                    <img src='https://www.shutterstock.com/image-vector/circle-line-simple-design-logo-600nw-2174926871.jpg' alt='Company Logo'>
-                </div>
-                <div class='content'>
-                    <h2>Password Reset Request</h2>
-                    <p>Hello,</p>
-                    <p>We received a request to reset your password. Click the button below to reset it:</p>
-                    <a href='{resetLink}' class='btn'>Reset Password</a>
-                    <p>If you didn’t request this, please ignore this email.</p>
-                </div>
-                <div class='footer'>
-                    <p>&copy; 2024 Gourmet Gallery. All rights reserved.</p>
-                </div>
-            </div>
-        </body>
-        </html>";
+        var subject = "Password Reset Request";
 
+        // Reusable company details
+        string companyName = "Gourmet Gallery";
+
+        // Email body (HTML version only)
+        var body = $@"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }}
+            .container {{
+                background: #ffffff;
+                border-radius: 8px;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            }}
+            .header {{
+                text-align: center;
+                margin-bottom: 20px;
+            }}
+            .header img {{
+                max-width: 300px;
+                mix-blend-mode: multiply;
+            }}
+            .content {{
+                margin-bottom: 20px;
+            }}
+            .footer {{
+                font-size: 0.875rem;
+                color: #888;
+                text-align: center;
+            }}
+            .btn {{
+                display: inline-block;
+                font-size: 1rem;
+                color: #ffffff !important;
+                background-color: #007bff;
+                padding: 12px 20px;
+                text-decoration: none;
+                border-radius: 4px;
+                margin: 10px 0;
+                text-align: center;
+            }}
+            .btn:hover {{
+                background-color: #0056b3;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <img src='{logoGourmetUrl}' alt='{companyName} Logo'>
+            </div>
+            <div class='content'>
+                <h2>Password Reset Request</h2>
+                <p>Hello,</p>
+                <p>We received a request to reset your password. Click the button below to reset it:</p>
+                <p>The link will expire after 1 hour.</p>
+                <p><a href='{resetLink}' class='btn'>Reset Password</a></p>
+                <p>If the button above doesn't work, copy and paste the following link into your browser:</p>
+                <p><a href='{resetLink}'>{resetLink}</a></p>
+                <p>If you didn’t request this, please ignore this email.</p>
+            </div>
+            <div class='footer'>
+                <p>&copy; {DateTime.Now.Year} {companyName}. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>";
+
+        // Send the email
         await _emailService.SendEmailAsync(email, subject, body);
     }
 
+
+    [EnableRateLimiting("ResendEmailPolicy")]
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
     {

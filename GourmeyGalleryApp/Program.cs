@@ -23,6 +23,9 @@ using GourmeyGalleryApp.Services.CategoryService;
 using GourmeyGalleryApp.Repositories.BadgeRepository;
 using GourmeyGalleryApp.Services.BadgeService;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,9 +64,21 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Lax; 
+    options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.IsEssential = true;
 });
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("ResendEmailPolicy", options =>
+    {
+        options.Window = TimeSpan.FromMinutes(5);
+        options.PermitLimit = 2;
+    });
+});
+
+
+
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -220,8 +235,6 @@ else if(app.Environment.IsProduction())
 
 app.UseHttpsRedirection();
 
-app.UseRouting();
-
 app.UseCors("AllowAll");
 //app.UseCors("AllowSpecificOrigin");
 
@@ -230,6 +243,10 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseRateLimiter(); // Add rate limiter after authentication and authorization
+
+app.UseRouting();
 
 app.MapControllers();
 
