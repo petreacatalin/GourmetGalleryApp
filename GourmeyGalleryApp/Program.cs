@@ -27,6 +27,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Polly;
 using GourmeyGalleryApp.Utils.FactoryPolicies;
+using StackExchange.Redis;
 
 
 
@@ -171,6 +172,18 @@ builder.Services.AddCors(options =>
 //        .AllowAnyHeader()
 //        .AllowCredentials());
 //});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConnectionString = builder.Configuration["RedisCacheSettings:ConnectionString"];
+    if (string.IsNullOrEmpty(redisConnectionString))
+    {
+        throw new ArgumentNullException("Redis connection string is not configured");
+    }
+
+    return ConnectionMultiplexer.Connect(redisConnectionString);
+});
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

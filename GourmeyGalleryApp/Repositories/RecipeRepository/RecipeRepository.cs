@@ -1,8 +1,11 @@
-﻿using GourmetGallery.Infrastructure;
+﻿using AutoMapper;
+using GourmetGallery.Infrastructure;
 using GourmeyGalleryApp.Models.DTOs.Comments;
 using GourmeyGalleryApp.Models.DTOs.Recipe;
 using GourmeyGalleryApp.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using StackExchange.Redis;
 using System.Xml.Linq;
 
 namespace GourmeyGalleryApp.Repositories.RecipeRepository
@@ -10,10 +13,14 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
     public class RecipeRepository : IRecipeRepository
     {
         private readonly GourmetGalleryContext _context;
-
-        public RecipeRepository(GourmetGalleryContext context)
+        private readonly IConnectionMultiplexer _redis;
+        private readonly IMapper _mapper;
+        public RecipeRepository(GourmetGalleryContext context, IConnectionMultiplexer redis, IMapper mapper)
         {
+            _redis = redis;
+            _redis.GetDatabase();
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task AddRecipeAsync(Recipe recipe, RecipeDto? recipeDto)
@@ -86,35 +93,73 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
 
         public async Task<Recipe> GetRecipeByIdAsync(int id)
         {
-            var recipeById = await _context.Recipes.AsNoTracking()
-          .Include(r => r.IngredientsTotal)
-              .ThenInclude(it => it.Ingredients)
-          .Include(r => r.Instructions)
-              .ThenInclude(i => i.Steps)
-          .Include(r => r.Comments)
-              .ThenInclude(c => c.User) 
-          .Include(r => r.Comments)
-              .ThenInclude(c => c.Rating) 
-          .Include(r => r.NutritionFacts)
-          .Include(r => r.InformationTime)
-          .Include(r => r.ApplicationUser)
-          .FirstOrDefaultAsync(r => r.Id == id);
-        
-            if (recipeById == null)
-                return null;
-          
-            var mostHelpfulComment = recipeById.Comments
-                .Where(c => c.Rating != null && c.Rating.RatingValue >= 3)
-                .OrderByDescending(x=>x.Rating.RatingValue)
-                .OrderByDescending(c => c.HelpfulCount)
-                .ThenByDescending(c => c.Submitted)
-                .FirstOrDefault();
+            var cacheKey = $"recipe:{id}";
+            var expirationTime = TimeSpan.FromMinutes(1); // Cache expiry set to 15 minutes
+            var db = _redis.GetDatabase();
+            try
+            {
+                // Try to get the recipe from Redis
+                var cachedRecipe = await db.StringGetAsync(cacheKey);
 
-         
-            recipeById.MostHelpfulPositiveComment = mostHelpfulComment;
+                if (!cachedRecipe.IsNullOrEmpty)
+                {
+                    var cachedRecipeString = cachedRecipe.ToString();
+                    // If found in cache, deserialize and return it
+                    var recipeFromCache = JsonConvert.DeserializeObject<Recipe>(cachedRecipeString);
+                    return recipeFromCache;
+                }
 
-            return recipeById;
+                // If not found in cache, fetch the recipe from the database
+                var recipeById = await _context.Recipes.AsNoTracking()
+                    .Include(r => r.IngredientsTotal)
+                        .ThenInclude(it => it.Ingredients)
+                    .Include(r => r.Instructions)
+                        .ThenInclude(i => i.Steps)
+                    .Include(r => r.Comments)
+                        .ThenInclude(c => c.User)
+                    .Include(r => r.Comments)
+                        .ThenInclude(c => c.Rating)
+                    .Include(r => r.NutritionFacts)
+                    .Include(r => r.InformationTime)
+                    .Include(r => r.ApplicationUser)
+                    .FirstOrDefaultAsync(r => r.Id == id);
+
+                if (recipeById == null)
+                {
+                    return null;
+                }
+
+                // Find the most helpful positive comment
+                var mostHelpfulComment = recipeById.Comments
+                    .Where(c => c.Rating != null && c.Rating.RatingValue >= 3)
+                    .OrderByDescending(x => x.Rating.RatingValue)
+                    .ThenByDescending(c => c.HelpfulCount)
+                    .ThenByDescending(c => c.Submitted)
+                    .FirstOrDefault();
+
+                recipeById.MostHelpfulPositiveComment = mostHelpfulComment;
+
+                // Store the recipe in Redis with an expiration time
+                var recipeDto = _mapper.Map<RecipeDto>(recipeById);
+                var settings = new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore // Prevents self-referencing loop errors
+                };
+
+                await db.StringSetAsync(cacheKey, JsonConvert.SerializeObject(recipeById, settings), TimeSpan.FromMinutes(1));
+
+
+                return recipeById;
+            }
+            catch (Exception ex)
+            {
+                // Handle Redis or database failure (you can log the exception here)
+               
+                return null; // You can decide whether to throw or return null
+            }
         }
+
+
         public async Task<List<Rating>> GetRatingsByRecipeId(int id)
         {
             return await _context.Ratings.AsNoTracking().Where(x => x.RecipeId == id)
