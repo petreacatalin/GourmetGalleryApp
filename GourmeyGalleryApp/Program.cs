@@ -26,6 +26,7 @@ using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Polly;
+using GourmeyGalleryApp.Utils.FactoryPolicies;
 
 
 
@@ -69,16 +70,15 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.IsEssential = true;
 });
 
-//builder.Services.AddRateLimiter(options =>
-//{
-//    options.AddFixedWindowLimiter("ResendEmailPolicy", options =>
-//    {
-//        options.Window = TimeSpan.FromMinutes(5);
-//        options.PermitLimit = 2;
-//    });
-//});
-builder.Services.AddSingleton<IAsyncPolicy>(Policy.RateLimitAsync(1, TimeSpan.FromMinutes(15))); // 1 request per minute
-
+// Polly rate limiter for requests 
+builder.Services.AddSingleton<IAsyncPolicyFactory>(serviceProvider =>
+{
+    return new AsyncPolicyFactory(new Dictionary<string, IAsyncPolicy>
+    {
+        { "ResendEmailPolicy", Policy.RateLimitAsync(1, TimeSpan.FromMinutes(15)) }, // 1 request per 15 minutes
+        { "MarkAsHelpfulPolicy", Policy.RateLimitAsync(1, TimeSpan.FromSeconds(7)) }, // 1 requests per 7 seconds
+    });
+});
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

@@ -14,6 +14,8 @@ using GourmeyGalleryApp.Services.RecipeService;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.RateLimiting;
 using Polly;
+using GourmeyGalleryApp.Utils.FactoryPolicies;
+using Polly.RateLimit;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -29,7 +31,7 @@ public class AccountController : ControllerBase
     private readonly BlobStorageService _blobStorageService;
     private readonly IRecipeService _recipeService;
     private readonly RoleManager<IdentityRole> _roleManager; // Add this line
-    private readonly IAsyncPolicy _rateLimiterPolicy;
+    private readonly IAsyncPolicyFactory _policyFactory;
 
     private const string profilePictureUrl = "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/profile-circle.png";
     private const string logoGourmetUrl = "https://gourmetgallery01.blob.core.windows.net/gourmetgallery01/qwr.png";
@@ -44,7 +46,7 @@ public class AccountController : ControllerBase
         BlobStorageService blobStorageService,
         IRecipeService recipeService,
         RoleManager<IdentityRole> roleManager,
-        IAsyncPolicy rateLimiterPolicy)
+        IAsyncPolicyFactory policyFactory)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -55,7 +57,7 @@ public class AccountController : ControllerBase
         _blobStorageService = blobStorageService;
         _recipeService = recipeService;
         _roleManager = roleManager;
-        _rateLimiterPolicy = rateLimiterPolicy;
+        _policyFactory = policyFactory ?? throw new ArgumentNullException(nameof(policyFactory));
     }
 
     [HttpPost("register")]
@@ -123,13 +125,17 @@ public class AccountController : ControllerBase
         {
             return BadRequest("Email is already confirmed.");
         }
+
+        var resendPolicy = _policyFactory.GetPolicy("ResendEmailPolicy");
+
         try
         {
-            await _rateLimiterPolicy.ExecuteAsync(async () =>
+            await resendPolicy.ExecuteAsync(async () =>
             {
                 await SendConfirmationEmail(user);
             });
         }
+   
         catch (Exception ex)
         {
             return StatusCode(429, ex.Message.ToString());

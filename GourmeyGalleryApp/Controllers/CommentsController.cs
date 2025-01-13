@@ -2,6 +2,7 @@
 using GourmeyGalleryApp.Models.DTOs.Comments;
 using GourmeyGalleryApp.Models.Entities;
 using GourmeyGalleryApp.Services;
+using GourmeyGalleryApp.Utils.FactoryPolicies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,12 @@ using System.Threading.Tasks;
 public class CommentsController : ControllerBase
 {
     private readonly ICommentsService _commentsService;
+    private readonly IAsyncPolicyFactory _policyFactory;
 
-    public CommentsController(ICommentsService commentsService)
+    public CommentsController(ICommentsService commentsService, IAsyncPolicyFactory policyFactory)
     {
         _commentsService = commentsService;
+        _policyFactory = policyFactory;
     }
 
     [HttpPost]
@@ -96,20 +99,34 @@ public class CommentsController : ControllerBase
     public async Task<IActionResult> MarkAsHelpful(int id)
     {
         var userId = User.FindFirstValue("nameId");
-        if (userId == null) return Unauthorized();
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("User is not authorized.");
+        }
+
+        // Retrieve the policy using the factory
+        var resendPolicy = _policyFactory.GetPolicy("MarkAsHelpfulPolicy");
 
         try
         {
-            await _commentsService.MarkAsHelpfulAsync(id, userId);
-            return NoContent();
+            // Execute the rate-limiting policy
+            await resendPolicy.ExecuteAsync(async () =>
+            {
+                await _commentsService.MarkAsHelpfulAsync(id, userId);
+            });
+
+            // Return success response
+            return Ok(new { message = "Vote registered successfully." });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            // Handle rate-limiting exceptions
+            return StatusCode(429, new { error = ex.Message });
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
-            return NotFound(new { message = ex.Message });
+            // Handle other unexpected exceptions
+            return StatusCode(500, new { error = "An unexpected error occurred.", details = ex.Message });
         }
     }
 
