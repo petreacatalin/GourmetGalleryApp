@@ -10,6 +10,7 @@ namespace GourmeyGalleryApp.Models.DTOs.ApplicationUser
         public string? Email { get; set; }
         public string? ProfilePictureUrl { get; set; }
         public string? About { get; set; }
+        public bool IsSubscribedToNewsletter { get; set; } = false;
 
         public DateTime JoinedAt { get; set; }
         public List<BadgeDto>? Badges { get; set; } = new List<BadgeDto>();

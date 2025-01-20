@@ -10,8 +10,8 @@ namespace GourmeyGalleryApp.Models.Entities
         public bool IsAdmin { get; set; } = false;
         public DateTime JoinedAt { get; set; }
         public string? About { get; set; }
+        public bool IsSubscribedToNewsletter { get; set; } = false;
         public ICollection<Friend> FriendsAdded { get; set; }
-
         // Navigation property representing friends who added the user
         public ICollection<Friend> FriendsAccepted { get; set; }
         public ICollection<Message> MessagesSent { get; set; }

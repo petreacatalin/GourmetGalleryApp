@@ -28,6 +28,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Polly;
 using GourmeyGalleryApp.Utils.FactoryPolicies;
 using StackExchange.Redis;
+using GourmeyGalleryApp.Services.NewsletterService;
+using Hangfire;
 
 
 
@@ -39,6 +41,9 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // builder.WebHost.UseUrls("http://*:80");
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 // Add services to the container.
 builder.Services.AddDbContext<GourmetGalleryContext>(options =>
@@ -96,6 +101,9 @@ builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddSingleton<BlobStorageService>(sp =>
         new BlobStorageService(sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddTransient<IEmailService, EmailService>();
+builder.Services.AddScoped<NewsletterService>();
+builder.Services.AddSingleton<JobScheduler>(); // Register the JobScheduler class
+builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
 
 builder.Services.AddAuthentication(options =>
@@ -184,6 +192,11 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     return ConnectionMultiplexer.Connect(redisConnectionString);
 });
 
+builder.Services.AddHangfire(config =>
+{
+    config.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+builder.Services.AddHangfireServer();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -229,11 +242,6 @@ builder.Services.AddAzureClients(clientBuilder =>
 
 var app = builder.Build();
 
-//using (var scope = app.Services.CreateScope())
-//{
-//    var serviceProvider = scope.ServiceProvider;
-//    await serviceProvider.InitializeRolesAsync(); // Initialize roles
-//}
 
 if (app.Environment.IsDevelopment())
 {
@@ -246,6 +254,11 @@ else if(app.Environment.IsProduction())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+app.UseHangfireDashboard();
+app.MapHangfireDashboard();
+
+var jobScheduler = app.Services.GetRequiredService<JobScheduler>();
+jobScheduler.ConfigureRecurringJobs();
 
 app.UseHttpsRedirection();
 
