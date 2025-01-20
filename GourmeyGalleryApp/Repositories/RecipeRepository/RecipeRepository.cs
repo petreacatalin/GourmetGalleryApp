@@ -13,12 +13,12 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
     public class RecipeRepository : IRecipeRepository
     {
         private readonly GourmetGalleryContext _context;
-        private readonly IConnectionMultiplexer _redis;
+        //private readonly IConnectionMultiplexer _redis;
         private readonly IMapper _mapper;
-        public RecipeRepository(GourmetGalleryContext context, IConnectionMultiplexer redis, IMapper mapper)
+        public RecipeRepository(GourmetGalleryContext context, /*IConnectionMultiplexer redis*/ IMapper mapper)
         {
-            _redis = redis;
-            _redis.GetDatabase();
+            //_redis = redis;
+            //_redis.GetDatabase();
             _context = context;
             _mapper = mapper;
         }
@@ -93,21 +93,21 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
 
         public async Task<Recipe> GetRecipeByIdAsync(int id)
         {
-            var cacheKey = $"recipe:{id}";
-            var expirationTime = TimeSpan.FromMinutes(1); // Cache expiry set to 15 minutes
-            var db = _redis.GetDatabase();
+            //var cacheKey = $"recipe:{id}";
+            //var expirationTime = TimeSpan.FromMinutes(1); // Cache expiry set to 15 minutes
+            //var db = _redis.GetDatabase();
             try
             {
-                // Try to get the recipe from Redis
-                var cachedRecipe = await db.StringGetAsync(cacheKey);
+                //// Try to get the recipe from Redis
+                //var cachedRecipe = await db.StringGetAsync(cacheKey);
 
-                if (!cachedRecipe.IsNullOrEmpty)
-                {
-                    var cachedRecipeString = cachedRecipe.ToString();
-                    // If found in cache, deserialize and return it
-                    var recipeFromCache = JsonConvert.DeserializeObject<Recipe>(cachedRecipeString);
-                    return recipeFromCache;
-                }
+                //if (!cachedRecipe.IsNullOrEmpty)
+                //{
+                //    var cachedRecipeString = cachedRecipe.ToString();
+                //    // If found in cache, deserialize and return it
+                //    var recipeFromCache = JsonConvert.DeserializeObject<Recipe>(cachedRecipeString);
+                //    return recipeFromCache;
+                //}
 
                 // If not found in cache, fetch the recipe from the database
                 var recipeById = await _context.Recipes.AsNoTracking()
@@ -141,12 +141,12 @@ namespace GourmeyGalleryApp.Repositories.RecipeRepository
 
                 // Store the recipe in Redis with an expiration time
                 var recipeDto = _mapper.Map<RecipeDto>(recipeById);
-                var settings = new JsonSerializerSettings
-                {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore // Prevents self-referencing loop errors
-                };
+                //var settings = new JsonSerializerSettings
+                //{
+                //    ReferenceLoopHandling = ReferenceLoopHandling.Ignore // Prevents self-referencing loop errors
+                //};
 
-                await db.StringSetAsync(cacheKey, JsonConvert.SerializeObject(recipeById, settings), TimeSpan.FromMinutes(1));
+                //await db.StringSetAsync(cacheKey, JsonConvert.SerializeObject(recipeById, settings), TimeSpan.FromMinutes(1));
 
 
                 return recipeById;

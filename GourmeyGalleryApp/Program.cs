@@ -181,16 +181,16 @@ builder.Services.AddCors(options =>
 //        .AllowCredentials());
 //});
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-{
-    var redisConnectionString = builder.Configuration["RedisCacheSettings:ConnectionString"];
-    if (string.IsNullOrEmpty(redisConnectionString))
-    {
-        throw new ArgumentNullException("Redis connection string is not configured");
-    }
+//builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+//{
+//    var redisConnectionString = builder.Configuration["RedisCacheSettings:ConnectionString"];
+//    if (string.IsNullOrEmpty(redisConnectionString))
+//    {
+//        throw new ArgumentNullException("Redis connection string is not configured");
+//    }
 
-    return ConnectionMultiplexer.Connect(redisConnectionString);
-});
+//    return ConnectionMultiplexer.Connect(redisConnectionString);
+//});
 
 builder.Services.AddHangfire(config =>
 {

@@ -78,7 +78,7 @@ namespace GourmeyGalleryApp.Controllers
            
         }
 
-        [HttpPost("newsletter/send-manually")]
+        [HttpPost("send-manually")]
         public IActionResult TriggerNewsletter()
         {
             try
