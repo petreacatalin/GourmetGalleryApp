@@ -271,7 +271,7 @@ public class AccountController : ControllerBase
         new Claim(JwtRegisteredClaimNames.GivenName, user.LastName ?? ""),
         new Claim(JwtRegisteredClaimNames.Name, user.UserName ?? ""),
         new Claim(JwtRegisteredClaimNames.NameId, user.Id ?? ""),
-        new Claim(JwtRegisteredClaimNames.UniqueName, user.ProfilePictureUrl ?? ""),
+        new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName ?? ""),
         new Claim(JwtRegisteredClaimNames.Aud, _configuration.GetSection("JwtConfig").GetSection("Audience").Value!),
         new Claim(JwtRegisteredClaimNames.Iss, _configuration.GetSection("JwtConfig").GetSection("Issuer").Value!)
     };

@@ -92,6 +92,7 @@ namespace GourmeyGalleryApp.Infrastructure
 
                 _context.CommentVotes.Add(vote);
                 comment.HelpfulCount++; // Increase helpful count
+
             }
 
             await _context.SaveChangesAsync();

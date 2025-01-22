@@ -23,5 +23,6 @@ namespace GourmeyGalleryApp.Models.Entities
         public ICollection<UserFavoriteRecipe> UserFavoriteRecipes { get; set; }
         public ICollection<CommentVote> CommentVotes { get; set; } = new List<CommentVote>();  // Votes cast by the user
         public ICollection<UserBadge> UserBadges { get; set; } = new List<UserBadge>();
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     }
 }

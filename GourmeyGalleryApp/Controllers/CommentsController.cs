@@ -2,11 +2,13 @@
 using GourmeyGalleryApp.Models.DTOs.Comments;
 using GourmeyGalleryApp.Models.Entities;
 using GourmeyGalleryApp.Services;
+using GourmeyGalleryApp.Services.NotificationService;
 using GourmeyGalleryApp.Utils.FactoryPolicies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -17,11 +19,15 @@ public class CommentsController : ControllerBase
 {
     private readonly ICommentsService _commentsService;
     private readonly IAsyncPolicyFactory _policyFactory;
+    private readonly INotificationService _notificationService;
 
-    public CommentsController(ICommentsService commentsService, IAsyncPolicyFactory policyFactory)
+    public CommentsController(ICommentsService commentsService,
+        IAsyncPolicyFactory policyFactory, 
+        INotificationService notificationService)
     {
         _commentsService = commentsService;
         _policyFactory = policyFactory;
+        _notificationService = notificationService;
     }
 
     [HttpPost]
@@ -93,10 +99,13 @@ public class CommentsController : ControllerBase
             return NotFound();
         }
     }
-
+    public class HelpfulRequest
+    {
+        public string? CommentUserId { get; set; }
+    }
     [Authorize(Roles = "Admin, User")]
     [HttpPost("{id}/helpful")]
-    public async Task<IActionResult> MarkAsHelpful(int id)
+    public async Task<IActionResult> MarkAsHelpful(int id,[FromBody] HelpfulRequest? helpfulRequest)
     {
         var userId = User.FindFirstValue("nameId");
         if (string.IsNullOrEmpty(userId))
@@ -106,7 +115,7 @@ public class CommentsController : ControllerBase
 
         // Retrieve the policy using the factory
         var resendPolicy = _policyFactory.GetPolicy("MarkAsHelpfulPolicy");
-
+        var userName = User.FindFirstValue("family_name") + ' ' + User.FindFirstValue("given_name");
         try
         {
             // Execute the rate-limiting policy
@@ -115,8 +124,16 @@ public class CommentsController : ControllerBase
                 await _commentsService.MarkAsHelpfulAsync(id, userId);
             });
 
+            var notificationMessage = $"{userName} liked your comment.";
+            await _notificationService.CreateNotificationAsync(
+                 userId: helpfulRequest.CommentUserId,
+                 type: NotificationType.Like,
+                 message: notificationMessage,
+                 referenceId: id
+             );
             // Return success response
             return Ok(new { message = "Vote registered successfully." });
+
         }
         catch (InvalidOperationException ex)
         {

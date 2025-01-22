@@ -30,6 +30,9 @@ using GourmeyGalleryApp.Utils.FactoryPolicies;
 using StackExchange.Redis;
 using GourmeyGalleryApp.Services.NewsletterService;
 using Hangfire;
+using GourmeyGalleryApp.Shared.SignalRHub;
+using Microsoft.AspNetCore.SignalR;
+using GourmeyGalleryApp.Services.NotificationService;
 
 
 
@@ -83,6 +86,7 @@ builder.Services.AddSingleton<IAsyncPolicyFactory>(serviceProvider =>
     {
         { "ResendEmailPolicy", Policy.RateLimitAsync(1, TimeSpan.FromMinutes(15)) }, // 1 request per 15 minutes
         { "MarkAsHelpfulPolicy", Policy.RateLimitAsync(1, TimeSpan.FromSeconds(7)) }, // 1 requests per 7 seconds
+        { "NotificationMarkAsReadPolicy", Policy.RateLimitAsync(1, TimeSpan.FromSeconds(3)) }, // 1 requests per 3 seconds
     });
 });
 
@@ -98,6 +102,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IBadgeRepository, BadgeRepository>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<BlobStorageService>(sp =>
         new BlobStorageService(sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddTransient<IEmailService, EmailService>();
@@ -111,6 +116,12 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use 'Always' for production
+    options.Cookie.SameSite = SameSiteMode.Lax;
 })
 .AddJwtBearer(jwt =>
 {
@@ -167,10 +178,17 @@ builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-           builder => builder.AllowAnyOrigin()
-                             .AllowAnyMethod()
-                             .AllowAnyHeader());
+    options.AddPolicy("AllowSpecificOrigin", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")  // Replace with your frontend URL
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); 
+        policy.WithOrigins("https://gourmetgallery.azurewebsites.net/") 
+           .AllowAnyHeader()
+           .AllowAnyMethod()
+           .AllowCredentials(); // Allow cookies for SignalR
+    });
 });
 //builder.Services.AddCors(options =>
 //{
@@ -197,6 +215,18 @@ builder.Services.AddHangfire(config =>
     config.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 builder.Services.AddHangfireServer();
+
+builder.Services.AddSignalR( options =>
+{
+    options.EnableDetailedErrors = true;
+    options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+})
+      .AddAzureSignalR(options =>
+      {
+          options.ConnectionString = builder.Configuration["AzureSignalR:ConnectionString"];
+
+      });
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -254,6 +284,8 @@ else if(app.Environment.IsProduction())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+
 app.UseHangfireDashboard();
 app.MapHangfireDashboard();
 
@@ -262,7 +294,7 @@ jobScheduler.ConfigureRecurringJobs();
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
+app.UseCors("AllowSpecificOrigin");
 //app.UseCors("AllowSpecificOrigin");
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
@@ -273,7 +305,10 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+app.MapHub<NotificationHub>("/notificationHub");
+
 app.MapControllers();
+
 
 using (var scope = app.Services.CreateScope())
 {

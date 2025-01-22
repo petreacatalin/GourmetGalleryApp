@@ -28,8 +28,7 @@ public class GourmetGalleryContext : IdentityDbContext<ApplicationUser>
     public DbSet<Badge> Badges { get; set; }
     public DbSet<UserBadge> UserBadges { get; set; }
     public DbSet<UserPoints> UserPoints { get; set; }
-
-
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -225,6 +224,12 @@ public class GourmetGalleryContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Badge>()
         .Property(b => b.Condition)
         .HasConversion<string>();
+
+        modelBuilder.Entity<Notification>()
+        .HasOne(n => n.User)
+        .WithMany(u => u.Notifications)
+        .HasForeignKey(n => n.ApplicationUserId)
+        .OnDelete(DeleteBehavior.Cascade);
     }
 
 }
