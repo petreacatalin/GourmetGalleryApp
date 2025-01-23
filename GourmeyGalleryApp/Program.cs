@@ -180,7 +180,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "https://gourmetgallery.azurewebsites.net")
+        policy.WithOrigins("https://gourmetgallery.azurewebsites.net", "http://localhost:4200")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Allow cookies for SignalR or other uses
@@ -214,8 +214,8 @@ builder.Services.AddHangfireServer();
 
 builder.Services.AddSignalR( options =>
 {
-    options.EnableDetailedErrors = true;
-    options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+    options.EnableDetailedErrors = false;
+    options.KeepAliveInterval = TimeSpan.FromSeconds(60);
 })
       .AddAzureSignalR(options =>
       {
@@ -290,12 +290,13 @@ jobScheduler.ConfigureRecurringJobs();
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowSpecificOrigin");
 //app.UseCors("AllowSpecificOrigin");
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 app.UseRouting();
+
+app.UseCors("AllowSpecificOrigin");
 
 app.UseAuthentication();
 
