@@ -127,7 +127,7 @@ builder.Services.AddAuthentication(options =>
 {
     jwt.MapInboundClaims = false;
     var key = Encoding.UTF8.GetBytes(builder.Configuration["JwtConfig:Key"]);
-    jwt.RequireHttpsMetadata = false;
+    jwt.RequireHttpsMetadata = true;
     jwt.SaveToken = true;
     jwt.TokenValidationParameters = new TokenValidationParameters
     {
@@ -301,7 +301,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<NotificationHub>("/notificationHub").RequireCors("AllowSpecificOrigin");
 
 app.MapControllers();
 
