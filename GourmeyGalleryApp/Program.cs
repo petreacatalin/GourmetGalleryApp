@@ -180,14 +180,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")  // Replace with your frontend URL
+        policy.WithOrigins("http://localhost:4200", "https://gourmetgallery.azurewebsites.net")
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); 
-        policy.WithOrigins("https://gourmetgallery.azurewebsites.net/") 
-           .AllowAnyHeader()
-           .AllowAnyMethod()
-           .AllowCredentials(); // Allow cookies for SignalR
+              .AllowCredentials(); // Allow cookies for SignalR or other uses
     });
 });
 //builder.Services.AddCors(options =>
