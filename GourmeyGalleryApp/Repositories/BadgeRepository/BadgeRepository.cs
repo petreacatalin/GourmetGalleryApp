@@ -162,7 +162,7 @@ namespace GourmeyGalleryApp.Repositories.BadgeRepository
 
         public async Task AddBadgeAsync(Badge badge)
         {
-            _context.Badges.Add(badge);
+             _context.Badges.Add(badge);
             await _context.SaveChangesAsync();
         }
 

@@ -373,7 +373,7 @@ public class AccountController : ControllerBase
         catch (Exception ex)
         {
 
-            throw ex;
+            throw;
         }
 
         // Generate a JWT or login the user
@@ -400,7 +400,7 @@ public class AccountController : ControllerBase
         }
         catch
         {
-            return null;
+            throw;
         }
     }
 

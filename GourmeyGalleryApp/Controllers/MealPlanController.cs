@@ -1,7 +1,10 @@
 ﻿using GourmetGallery.Infrastructure;
+using GourmeyGalleryApp.Models.Entities;
+using GourmeyGalleryApp.Services.CategoryService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace GourmeyGalleryApp.Controllers
 {
@@ -16,23 +19,38 @@ namespace GourmeyGalleryApp.Controllers
             _context = context;
         }
 
-        [HttpPost("addMealPlan")]
+        [HttpPost("add-mealplan")]
         public async Task<IActionResult> AddMealPlan([FromBody] MealPlan plan)
         {
+            var userId = User.FindFirstValue("nameId");
+            plan.UserId = userId;
             _context.MealPlans.Add(plan);
             await _context.SaveChangesAsync();
             return Ok(plan);
         }
 
-        [HttpGet("getMealPlans/{userId}")]
-        public async Task<IActionResult> GetMealPlans(string userId)
+        [HttpGet("mealplans")]
+        public async Task<IActionResult> GetMealPlans()
         {
+            var userId = User.FindFirstValue("nameId"); 
             var plans = await _context.MealPlans
                 .Where(mp => mp.UserId == userId)
                 .Include(mp => mp.Recipe)
                 .ToListAsync();
 
             return Ok(plans);
+        }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteMealPlan(int id)
+        {
+
+            var mealToBeRemoved = await _context.MealPlans.FindAsync(id);
+            if (mealToBeRemoved != null)
+            {
+                _context.MealPlans.Remove(mealToBeRemoved);
+                await _context.SaveChangesAsync();
+            }
+            return NoContent();
         }
         public class GroceryItem
         {
